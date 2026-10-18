@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   Car,
@@ -136,30 +135,18 @@ export default function Navbar() {
     <>
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
-            ? "bg-[#060913]/90 backdrop-blur-2xl border-b border-slate-800/80 shadow-2xl shadow-black/70 py-3"
-            : "bg-gradient-to-b from-[#060913]/90 to-transparent py-5"
+          ? "bg-[#060913]/90 backdrop-blur-2xl border-b border-slate-800/80 shadow-2xl shadow-black/70 py-3"
+          : "bg-gradient-to-b from-[#060913]/90 to-transparent py-5"
           }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
 
-            {/* Extremely Clear Ultra-Sharp Logo */}
+            {/* Text-based Logo */}
             <Link
               href="/"
-              className="flex items-center gap-3 group transition-transform duration-200 hover:scale-[1.02]"
+              className="flex items-center gap-2.5 group transition-transform duration-200 hover:scale-[1.02]"
             >
-              <div className="relative w-11 h-11 p-0.5 rounded-2xl bg-gradient-to-br from-blue-500 via-cyan-400 to-indigo-600 shadow-lg shadow-blue-500/25 group-hover:shadow-cyan-400/40 transition-all">
-                <div className="w-full h-full bg-[#090d16] rounded-[14px] flex items-center justify-center overflow-hidden p-1">
-                  <Image
-                    src="/DriveVue AI_ Neon Motion Logo.png"
-                    alt="DriveVue AI"
-                    width={90}
-                    height={90}
-                    className="object-contain w-full h-full filter drop-shadow-[0_0_6px_rgba(59,130,246,0.8)]"
-                    priority
-                  />
-                </div>
-              </div>
               <div className="flex items-center gap-1.5">
                 <span className="text-2xl font-black tracking-tight text-white font-sans">
                   Drive<span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Vue</span>
@@ -181,19 +168,19 @@ export default function Navbar() {
                     key={link.name}
                     href={link.href}
                     className={`relative flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all duration-200 ${isActive
-                        ? "text-white bg-gradient-to-r from-blue-600 to-blue-500 shadow-md shadow-blue-500/30 border border-blue-400/40"
-                        : link.highlight
-                          ? "text-cyan-300 hover:text-white hover:bg-cyan-500/10"
-                          : "text-slate-300 hover:text-white hover:bg-slate-800/60"
+                      ? "text-white bg-gradient-to-r from-blue-600 to-blue-500 shadow-md shadow-blue-500/30 border border-blue-400/40"
+                      : link.highlight
+                        ? "text-cyan-300 hover:text-white hover:bg-cyan-500/10"
+                        : "text-slate-300 hover:text-white hover:bg-slate-800/60"
                       }`}
                   >
                     {Icon && (
                       <Icon
                         className={`w-3.5 h-3.5 ${link.highlight
-                            ? "text-cyan-400 animate-pulse"
-                            : isActive
-                              ? "text-white"
-                              : "text-slate-400"
+                          ? "text-cyan-400 animate-pulse"
+                          : isActive
+                            ? "text-white"
+                            : "text-slate-400"
                           }`}
                       />
                     )}
@@ -214,8 +201,8 @@ export default function Navbar() {
                       } text-xs text-slate-200 transition-all focus:outline-none`}
                   >
                     <div className={`w-7 h-7 rounded-xl ${isAdmin
-                        ? "bg-amber-500/20 border border-amber-500/50 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.2)]"
-                        : "bg-blue-600/25 border border-blue-500/40 text-blue-400"
+                      ? "bg-amber-500/20 border border-amber-500/50 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.2)]"
+                      : "bg-blue-600/25 border border-blue-500/40 text-blue-400"
                       } flex items-center justify-center font-bold`}>
                       {isAdmin ? <ShieldCheck className="w-4 h-4" /> : <User className="w-4 h-4" />}
                     </div>
@@ -243,7 +230,6 @@ export default function Navbar() {
                       </div>
 
                       <div className="space-y-1">
-                        {/* Single Primary Dashboard Option */}
                         {isAdmin && (
                           <Link
                             href="/admin/dashboard"
@@ -333,8 +319,8 @@ export default function Navbar() {
                       href={link.href}
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={`flex items-center justify-between px-4 py-3 rounded-xl text-xs font-medium transition-colors ${isActive
-                          ? "bg-blue-600/20 text-cyan-300 border border-blue-500/30"
-                          : "text-slate-300 hover:bg-slate-900 hover:text-white"
+                        ? "bg-blue-600/20 text-cyan-300 border border-blue-500/30"
+                        : "text-slate-300 hover:bg-slate-900 hover:text-white"
                         }`}
                     >
                       <div className="flex items-center gap-3">
