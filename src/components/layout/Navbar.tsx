@@ -77,7 +77,7 @@ export default function Navbar() {
       icon: Sparkles,
       highlight: true 
     },
-    { name: "My Bookings", href: "/bookings", icon: CalendarDays },
+    { name: "My Bookings", href: "/my-bookings", icon: CalendarDays },
     { name: "About Us", href: "/about", icon: Info },
   ];
 
@@ -114,7 +114,7 @@ export default function Navbar() {
           {/* Centered Navigation Links */}
           <nav className="hidden md:flex items-center gap-1 bg-slate-900/70 border border-slate-800/90 rounded-full px-4 py-1.5 backdrop-blur-md shadow-inner shadow-black/20">
             {navLinks.map((link) => {
-              const isActive = pathname === link.href;
+              const isActive = pathname === link.href || (link.href === "/my-bookings" && pathname === "/bookings");
               const Icon = link.icon;
 
               return (
@@ -213,7 +213,7 @@ export default function Navbar() {
           <div className="md:hidden mt-3 rounded-2xl bg-slate-950/95 border border-slate-800/90 backdrop-blur-2xl p-4 shadow-2xl shadow-black/80 animate-in fade-in slide-in-from-top-4 duration-200">
             <div className="flex flex-col gap-1.5">
               {navLinks.map((link) => {
-                const isActive = pathname === link.href;
+                const isActive = pathname === link.href || (link.href === "/my-bookings" && pathname === "/bookings");
                 const Icon = link.icon;
                 return (
                   <Link
