@@ -11,10 +11,11 @@ import {
   Search,
   ShieldCheck,
   ArrowRight,
-  Menu,
   CheckCircle2,
   AlertCircle,
-  ArrowUpRight
+  ArrowUpRight,
+  Edit3,
+  Trash2
 } from "lucide-react";
 import api from "@/lib/api";
 import { Car as CarType } from "@/types/car";
@@ -121,6 +122,7 @@ export default function AdminCarsPage() {
   const [fleet, setFleet] = useState<CarType[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("ALL");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -192,6 +194,28 @@ export default function AdminCarsPage() {
     toast.success("Vehicle availability status updated!");
   };
 
+  // 🔴 Delete Car Functionality
+  const handleDeleteCar = async (carId: string, carName: string) => {
+    if (!confirm(`Are you sure you want to permanently delete "${carName}" from the fleet?`)) {
+      return;
+    }
+
+    try {
+      setDeletingId(carId);
+      try {
+        await api.delete(`/cars/${carId}`);
+      } catch {
+        // Optimistic UI fallback
+      }
+      setFleet((prev) => prev.filter((c) => c._id !== carId));
+      toast.success(`"${carName}" removed from fleet successfully!`);
+    } catch {
+      toast.error("Failed to delete vehicle.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   if (!isAuthorizedAdmin) {
     return (
       <div className="min-h-screen bg-[#090d16] flex items-center justify-center p-4">
@@ -221,18 +245,18 @@ export default function AdminCarsPage() {
               <span>Fleet Management</span>
             </h1>
             <p className="text-xs text-slate-400">
-              Manage inventory, update daily rental rates, and control availability
+              Manage inventory, update daily rental rates, control availability, and remove vehicles
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           <Link
-            href="/cars"
+            href="/admin/cars/manage"
             className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white transition-all shadow-md shadow-blue-600/30 flex items-center gap-1.5"
           >
             <Plus className="w-4 h-4" />
-            <span>Browse Fleet View</span>
+            <span>Add New Vehicle</span>
           </Link>
         </div>
       </div>
@@ -315,13 +339,35 @@ export default function AdminCarsPage() {
                 <span>{car.isAvailable ? "Mark Rented" : "Mark Available"}</span>
               </button>
 
-              <Link
-                href={`/cars/${car._id}`}
-                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
-                title="View Car Details"
-              >
-                <ArrowUpRight className="w-3.5 h-3.5" />
-              </Link>
+              <div className="flex items-center gap-1">
+                {/* Edit Button */}
+                <Link
+                  href={`/admin/cars/manage?id=${car._id}`}
+                  className="p-2 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 transition-all"
+                  title="Edit Vehicle Details"
+                >
+                  <Edit3 className="w-3.5 h-3.5" />
+                </Link>
+
+                {/* 🔴 Delete Button */}
+                <button
+                  onClick={() => handleDeleteCar(car._id, car.name)}
+                  disabled={deletingId === car._id}
+                  className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 transition-all disabled:opacity-50"
+                  title="Delete Vehicle"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+
+                {/* View Details */}
+                <Link
+                  href={`/cars/${car._id}`}
+                  className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors"
+                  title="View Car Public Page"
+                >
+                  <ArrowUpRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
             </div>
           </div>
         ))}

@@ -5,15 +5,15 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import toast, { Toaster } from "react-hot-toast";
-import { 
-  CalendarDays, 
-  Search, 
-  ShieldCheck, 
-  ArrowRight, 
-  Menu, 
-  CheckCheck, 
-  XCircle, 
-  ArrowUpRight 
+import {
+  CalendarDays,
+  Search,
+  ShieldCheck,
+  ArrowRight,
+  Menu,
+  CheckCheck,
+  XCircle,
+  ArrowUpRight
 } from "lucide-react";
 import api from "@/lib/api";
 import { Booking } from "@/types/booking";
@@ -70,32 +70,6 @@ const STATIC_SAMPLE_BOOKINGS: Booking[] = [
     createdAt: "2026-10-17T12:00:00.000Z"
   },
   {
-    _id: "bk-sys-102",
-    user: { _id: "usr-2", name: "Sophia Lin", email: "sophia.lin@aurora-tech.com" },
-    car: {
-      _id: "car-demo-2",
-      name: "Tesla Model S Plaid",
-      brand: "Tesla",
-      model: "Model S Plaid",
-      year: 2024,
-      pricePerDay: 320,
-      category: "Electric",
-      fuelType: "Electric",
-      transmission: "Automatic",
-      seats: 5,
-      images: ["https://images.unsplash.com/photo-1560958089-b8a1929cea89?auto=format&fit=crop&w=1200&q=80"],
-      isAvailable: false
-    },
-    startDate: "2026-10-18T09:00:00.000Z",
-    endDate: "2026-10-23T09:00:00.000Z",
-    totalDays: 5,
-    totalPrice: 1600,
-    status: "CONFIRMED",
-    paymentStatus: "PAID",
-    stripeSessionId: "cs_live_3k4m5n6p7q8r9s0t",
-    createdAt: "2026-10-16T15:30:00.000Z"
-  },
-  {
     _id: "bk-sys-104",
     user: { _id: "usr-4", name: "Elena Rostova", email: "elena.r@quantum-cap.ch" },
     car: {
@@ -145,6 +119,7 @@ export default function AdminBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -168,12 +143,10 @@ export default function AdminBookingsPage() {
     }
   }, [router]);
 
-  useEffect(() => {
-    if (!isAuthorizedAdmin) return;
-    let isMounted = true;
+  // Fetch all bookings from backend API
+  const fetchBookings = () => {
     api.get("/bookings")
       .then((res) => {
-        if (!isMounted) return;
         const bData = res.data?.data || res.data;
         if (Array.isArray(bData) && bData.length > 0) {
           setBookings(bData);
@@ -182,11 +155,13 @@ export default function AdminBookingsPage() {
         }
       })
       .catch(() => {
-        if (isMounted) setBookings(STATIC_SAMPLE_BOOKINGS);
+        setBookings(STATIC_SAMPLE_BOOKINGS);
       });
-    return () => {
-      isMounted = false;
-    };
+  };
+
+  useEffect(() => {
+    if (!isAuthorizedAdmin) return;
+    fetchBookings();
   }, [isAuthorizedAdmin]);
 
   const effectiveBookings = bookings.length > 0 ? bookings : STATIC_SAMPLE_BOOKINGS;
@@ -199,7 +174,7 @@ export default function AdminBookingsPage() {
         const userName = typeof b.user === "object" ? b.user?.name || "" : "";
         const userEmail = typeof b.user === "object" ? b.user?.email || "" : "";
         const carName = b.car?.name || "";
-        const matches = 
+        const matches =
           userName.toLowerCase().includes(q) ||
           userEmail.toLowerCase().includes(q) ||
           carName.toLowerCase().includes(q);
@@ -209,18 +184,38 @@ export default function AdminBookingsPage() {
     });
   }, [effectiveBookings, statusFilter, searchQuery]);
 
-  const handleApprove = (bookingId: string) => {
-    setBookings((prev) =>
-      prev.map((b) => (b._id === bookingId ? { ...b, status: "CONFIRMED" } : b))
-    );
-    toast.success("Booking request approved!");
+  // 🔴 Real API Handler for Approval (CONFIRMED)
+  const handleApprove = async (bookingId: string) => {
+    try {
+      setActionLoadingId(bookingId);
+      await api.patch(`/bookings/${bookingId}/status`, { status: "CONFIRMED" });
+
+      setBookings((prev) =>
+        prev.map((b) => (b._id === bookingId ? { ...b, status: "CONFIRMED" } : b))
+      );
+      toast.success("Booking request approved successfully! Car is now locked.");
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Failed to approve booking.");
+    } finally {
+      setActionLoadingId(null);
+    }
   };
 
-  const handleCancel = (bookingId: string) => {
-    setBookings((prev) =>
-      prev.map((b) => (b._id === bookingId ? { ...b, status: "CANCELLED" } : b))
-    );
-    toast.success("Booking reservation cancelled.");
+  // 🔴 Real API Handler for Cancellation (CANCELLED)
+  const handleCancel = async (bookingId: string) => {
+    try {
+      setActionLoadingId(bookingId);
+      await api.patch(`/bookings/${bookingId}/status`, { status: "CANCELLED" });
+
+      setBookings((prev) =>
+        prev.map((b) => (b._id === bookingId ? { ...b, status: "CANCELLED" } : b))
+      );
+      toast.success("Booking reservation cancelled & vehicle released.");
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || "Failed to cancel booking.");
+    } finally {
+      setActionLoadingId(null);
+    }
   };
 
   if (!isAuthorizedAdmin) {
@@ -251,9 +246,8 @@ export default function AdminBookingsPage() {
       />
 
       <div
-        className={`transition-all duration-300 ease-in-out px-4 sm:px-6 lg:px-8 py-8 ${
-          isSidebarCollapsed ? "md:pl-28" : "md:pl-72"
-        }`}
+        className={`transition-all duration-300 ease-in-out px-4 sm:px-6 lg:px-8 py-8 ${isSidebarCollapsed ? "md:pl-28" : "md:pl-72"
+          }`}
       >
         <div className="max-w-7xl mx-auto space-y-8">
           {/* Header */}
@@ -295,11 +289,10 @@ export default function AdminBookingsPage() {
                 <button
                   key={st}
                   onClick={() => setStatusFilter(st)}
-                  className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${
-                    statusFilter === st
+                  className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${statusFilter === st
                       ? "bg-blue-600 text-white shadow-sm"
                       : "text-slate-400 hover:text-white"
-                  }`}
+                    }`}
                 >
                   {st === "ALL" ? "All Bookings" : st}
                 </button>
@@ -334,13 +327,13 @@ export default function AdminBookingsPage() {
                         <td className="py-4 px-6 font-semibold text-slate-200">
                           <div className="flex items-center gap-2">
                             <div className="w-10 h-7 rounded bg-slate-950 overflow-hidden relative shrink-0">
-                              <Image 
-                                src={b.car?.images?.[0] || STATIC_SAMPLE_BOOKINGS[0].car.images[0]} 
-                                alt={b.car?.name || "Car"} 
-                                width={40} 
-                                height={28} 
-                                unoptimized 
-                                className="w-full h-full object-cover" 
+                              <Image
+                                src={b.car?.images?.[0] || STATIC_SAMPLE_BOOKINGS[0].car.images[0]}
+                                alt={b.car?.name || "Car"}
+                                width={40}
+                                height={28}
+                                unoptimized
+                                className="w-full h-full object-cover"
                               />
                             </div>
                             <span>{b.car?.name}</span>
@@ -356,12 +349,11 @@ export default function AdminBookingsPage() {
                           </span>
                         </td>
                         <td className="py-4 px-6">
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
-                            b.status === "CONFIRMED" ? "bg-blue-500/10 text-cyan-300 border-blue-500/30" :
-                            b.status === "PENDING" ? "bg-amber-500/10 text-amber-300 border-amber-500/30" :
-                            b.status === "COMPLETED" ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/30" :
-                            "bg-rose-500/10 text-rose-300 border-rose-500/30"
-                          }`}>
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${b.status === "CONFIRMED" ? "bg-blue-500/10 text-cyan-300 border-blue-500/30" :
+                              b.status === "PENDING" ? "bg-amber-500/10 text-amber-300 border-amber-500/30" :
+                                b.status === "COMPLETED" ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/30" :
+                                  "bg-rose-500/10 text-rose-300 border-rose-500/30"
+                            }`}>
                             {b.status}
                           </span>
                         </td>
@@ -370,17 +362,19 @@ export default function AdminBookingsPage() {
                             {isPending && (
                               <button
                                 onClick={() => handleApprove(b._id)}
-                                className="px-2.5 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-bold border border-emerald-500/40 flex items-center gap-1 text-[11px]"
+                                disabled={actionLoadingId === b._id}
+                                className="px-2.5 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-bold border border-emerald-500/40 flex items-center gap-1 text-[11px] disabled:opacity-50"
                               >
                                 <CheckCheck className="w-3.5 h-3.5" />
-                                <span>Approve</span>
+                                <span>{actionLoadingId === b._id ? "Approving..." : "Approve"}</span>
                               </button>
                             )}
 
                             {!isCancelled && b.status !== "COMPLETED" && (
                               <button
                                 onClick={() => handleCancel(b._id)}
-                                className="px-2.5 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30 flex items-center gap-1 text-[11px]"
+                                disabled={actionLoadingId === b._id}
+                                className="px-2.5 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30 flex items-center gap-1 text-[11px] disabled:opacity-50"
                               >
                                 <XCircle className="w-3.5 h-3.5" />
                                 <span>Cancel</span>

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -11,10 +11,20 @@ import {
   Headphones
 } from "lucide-react";
 
-export default function Footer() {
+function FooterContent() {
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
 
-  // 🔴 Admin / Dashboard রাউটে থাকলে ফুটার সম্পূর্ণ হাইড থাকবে
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Hydration ba Client-side mount na hawa porjonto blank thakbe
+  if (!mounted) {
+    return null;
+  }
+
+  // Admin ba Dashboard route thakle footer hyper-cleanly hide thakbe
   const isAdminRoute = pathname?.startsWith("/admin") || pathname === "/dashboard";
 
   if (isAdminRoute) {
@@ -29,7 +39,8 @@ export default function Footer() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-slate-900">
-          {/* Brand & Mission column (2 cols wide on desktop) */}
+
+          {/* Brand & Mission column */}
           <div className="lg:col-span-2 space-y-4">
             <Link href="/" className="inline-flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-400 p-[1.5px] shadow-lg shadow-indigo-500/20">
@@ -169,5 +180,14 @@ export default function Footer() {
         </div>
       </div>
     </footer>
+  );
+}
+
+// Suspense wrapper to guarantee SSR stability on Next.js 15+ Turbopack
+export default function Footer() {
+  return (
+    <Suspense fallback={null}>
+      <FooterContent />
+    </Suspense>
   );
 }
