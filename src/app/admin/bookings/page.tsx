@@ -145,7 +145,7 @@ export default function AdminBookingsPage() {
 
   // Fetch all bookings from backend API
   const fetchBookings = () => {
-    api.get("/bookings")
+    api.get("/api/bookings")
       .then((res) => {
         const bData = res.data?.data || res.data;
         if (Array.isArray(bData) && bData.length > 0) {
@@ -188,7 +188,7 @@ export default function AdminBookingsPage() {
   const handleApprove = async (bookingId: string) => {
     try {
       setActionLoadingId(bookingId);
-      await api.patch(`/bookings/${bookingId}/status`, { status: "CONFIRMED" });
+      await api.patch(`/api/bookings/${bookingId}/status`, { status: "CONFIRMED" });
 
       setBookings((prev) =>
         prev.map((b) => (b._id === bookingId ? { ...b, status: "CONFIRMED" } : b))
@@ -205,7 +205,7 @@ export default function AdminBookingsPage() {
   const handleCancel = async (bookingId: string) => {
     try {
       setActionLoadingId(bookingId);
-      await api.patch(`/bookings/${bookingId}/status`, { status: "CANCELLED" });
+      await api.patch(`/api/bookings/${bookingId}/status`, { status: "CANCELLED" });
 
       setBookings((prev) =>
         prev.map((b) => (b._id === bookingId ? { ...b, status: "CANCELLED" } : b))

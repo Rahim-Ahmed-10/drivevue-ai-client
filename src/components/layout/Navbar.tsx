@@ -257,6 +257,7 @@ export default function Navbar() {
 
                         <Link
                           href="/profile"
+                          prefetch={false}
                           onClick={() => setIsProfilePopupOpen(false)}
                           className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800/70 hover:text-white transition-all"
                         >

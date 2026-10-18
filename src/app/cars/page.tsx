@@ -51,7 +51,7 @@ function CarsListingContent() {
         if (filters.fuelType) params.fuelType = filters.fuelType;
         if (filters.isAvailableOnly) params.isAvailable = true;
 
-        const res = await api.get("/cars", { params });
+        const res = await api.get("/api/cars", { params });
 
         if (!active) return;
 

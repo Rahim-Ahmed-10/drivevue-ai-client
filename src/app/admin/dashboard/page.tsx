@@ -45,8 +45,8 @@ export default function AdminDashboardOverview() {
 
   useEffect(() => {
     Promise.allSettled([
-      api.get("/bookings"),
-      api.get("/cars")
+      api.get("/api/bookings"),
+      api.get("/api/cars")
     ]).then(([bRes, cRes]) => {
       if (bRes.status === "fulfilled" && bRes.value.data) {
         const d = bRes.value.data.data || bRes.value.data;

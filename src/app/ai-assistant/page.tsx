@@ -142,7 +142,7 @@ export default function AiAssistantPage() {
     setLoading(true);
 
     try {
-      const res = await api.post("/ai/recommend", {
+      const res = await api.post("/api/ai/recommend", {
         prompt: trimmed,
       });
 

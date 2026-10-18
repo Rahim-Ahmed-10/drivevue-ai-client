@@ -149,12 +149,12 @@ function FooterContent() {
                 <span>Stripe Encrypted Checkout</span>
               </li>
               <li>
-                <Link href="/terms" className="hover:text-cyan-400 transition-colors">
+                <Link href="/terms" prefetch={false} className="hover:text-cyan-400 transition-colors">
                   Rental Policies & Insurance
                 </Link>
               </li>
               <li>
-                <Link href="/faq" className="hover:text-cyan-400 transition-colors">
+                <Link href="/faq" prefetch={false} className="hover:text-cyan-400 transition-colors">
                   Help Center & FAQs
                 </Link>
               </li>
@@ -167,13 +167,13 @@ function FooterContent() {
           <p>© 2026 DriveVue AI Inc. All rights reserved.</p>
 
           <div className="flex items-center gap-6">
-            <Link href="/privacy" className="hover:text-slate-400 transition-colors">
+            <Link href="/privacy" prefetch={false} className="hover:text-slate-400 transition-colors">
               Privacy Policy
             </Link>
-            <Link href="/terms" className="hover:text-slate-400 transition-colors">
+            <Link href="/terms" prefetch={false} className="hover:text-slate-400 transition-colors">
               Terms of Service
             </Link>
-            <Link href="/security" className="hover:text-slate-400 transition-colors">
+            <Link href="/security" prefetch={false} className="hover:text-slate-400 transition-colors">
               Security Overview
             </Link>
           </div>

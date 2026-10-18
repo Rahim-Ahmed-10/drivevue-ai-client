@@ -56,7 +56,7 @@ export default function MyBookingsPage() {
 
     let isMounted = true;
     api
-      .get("/bookings/my-bookings")
+      .get("/api/bookings/my-bookings")
       .then((res) => {
         if (!isMounted) return;
         if (res.data && res.data.data) {
@@ -86,7 +86,7 @@ export default function MyBookingsPage() {
   const confirmCancelBooking = async (bookingId: string) => {
     setCancellingId(bookingId);
     try {
-      await api.patch(`/bookings/cancel/${bookingId}`);
+      await api.patch(`/api/bookings/cancel/${bookingId}`);
       setBookings((prev) =>
         prev.map((b) => (b._id === bookingId ? { ...b, status: "CANCELLED" } : b))
       );

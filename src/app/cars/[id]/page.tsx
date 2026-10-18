@@ -175,7 +175,7 @@ function CarDetailsContent() {
 
       if (isMongoId) {
         try {
-          const bookingRes = await api.post("/bookings", {
+          const bookingRes = await api.post("/api/bookings", {
             car: car._id,
             startDate: pickupDate,
             endDate: returnDate,
@@ -202,7 +202,7 @@ function CarDetailsContent() {
         sessionPayload.carId = car._id;
       }
 
-      const sessionRes = await api.post("/payments/create-checkout-session", sessionPayload);
+      const sessionRes = await api.post("/api/payments/create-checkout-session", sessionPayload);
 
       // Extract Stripe checkout URL from response (starts with https://checkout.stripe.com)
       const checkoutUrl =

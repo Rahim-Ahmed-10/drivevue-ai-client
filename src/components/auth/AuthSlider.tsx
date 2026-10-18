@@ -57,7 +57,7 @@ export default function AuthSlider({ initialMode = "login" }: AuthSliderProps) {
 
     try {
       setLoginLoading(true);
-      const res = await api.post("/auth/login", {
+      const res = await api.post("/api/auth/login", {
         email: loginEmail.trim(),
         password: loginPassword,
       });
@@ -119,7 +119,7 @@ export default function AuthSlider({ initialMode = "login" }: AuthSliderProps) {
 
     try {
       setRegisterLoading(true);
-      const res = await api.post("/auth/register", {
+      const res = await api.post("/api/auth/register", {
         name: registerName.trim(),
         email: registerEmail.trim(),
         password: registerPassword,
@@ -130,7 +130,7 @@ export default function AuthSlider({ initialMode = "login" }: AuthSliderProps) {
 
         // Auto-login upon registration
         try {
-          const loginRes = await api.post("/auth/login", {
+          const loginRes = await api.post("/api/auth/login", {
             email: registerEmail.trim(),
             password: registerPassword,
           });
@@ -436,6 +436,7 @@ export default function AuthSlider({ initialMode = "login" }: AuthSliderProps) {
                 </label>
                 <Link
                   href="/forgot-password"
+                  prefetch={false}
                   className="text-blue-400 hover:text-blue-300 transition-colors"
                 >
                   Forgot password?
@@ -645,11 +646,11 @@ export default function AuthSlider({ initialMode = "login" }: AuthSliderProps) {
                   className="text-xs text-slate-400 select-none cursor-pointer"
                 >
                   I agree to the{" "}
-                  <Link href="/terms" className="text-cyan-400 hover:underline">
+                  <Link href="/terms" prefetch={false} className="text-cyan-400 hover:underline">
                     Terms of Service
                   </Link>{" "}
                   and{" "}
-                  <Link href="/privacy" className="text-cyan-400 hover:underline">
+                  <Link href="/privacy" prefetch={false} className="text-cyan-400 hover:underline">
                     Privacy Policy
                   </Link>
                   .

@@ -48,7 +48,7 @@ function ManageCarForm() {
         if (carId) {
             setIsEditing(true);
             setFetching(true);
-            api.get(`/cars/${carId}`)
+            api.get(`/api/cars/${carId}`)
                 .then((res) => {
                     const car = res.data?.data || res.data;
                     if (car) {
@@ -99,10 +99,10 @@ function ManageCarForm() {
 
         try {
             if (isEditing && carId) {
-                await api.put(`/cars/${carId}`, payload);
+                await api.put(`/api/cars/${carId}`, payload);
                 toast.success("Vehicle updated successfully!");
             } else {
-                await api.post("/cars", payload);
+                await api.post("/api/cars", payload);
                 toast.success("New vehicle added to fleet successfully!");
             }
 

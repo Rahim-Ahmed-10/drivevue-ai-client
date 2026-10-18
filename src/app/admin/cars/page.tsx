@@ -149,7 +149,7 @@ export default function AdminCarsPage() {
   useEffect(() => {
     if (!isAuthorizedAdmin) return;
     let isMounted = true;
-    api.get("/cars")
+    api.get("/api/cars")
       .then((res) => {
         if (!isMounted) return;
         const cData = res.data?.data || res.data;
@@ -203,7 +203,7 @@ export default function AdminCarsPage() {
     try {
       setDeletingId(carId);
       try {
-        await api.delete(`/cars/${carId}`);
+        await api.delete(`/api/cars/${carId}`);
       } catch {
         // Optimistic UI fallback
       }
