@@ -72,8 +72,13 @@ export default function AuthSlider({ initialMode = "login" }: AuthSliderProps) {
         // Trigger custom event for Navbar or other listeners
         window.dispatchEvent(new Event("auth-changed"));
 
-        // Redirect to homepage or previous intended page
-        router.push("/");
+        // Redirect to admin dashboard if admin, otherwise homepage
+        const userRole = res.data.data?.role?.toLowerCase();
+        if (userRole === "admin") {
+          router.push("/admin/dashboard");
+        } else {
+          router.push("/");
+        }
         router.refresh();
       } else {
         setLoginError("Login failed. No authentication token received.");
@@ -137,8 +142,13 @@ export default function AuthSlider({ initialMode = "login" }: AuthSliderProps) {
               localStorage.setItem("user", JSON.stringify(loginRes.data.data));
             }
             window.dispatchEvent(new Event("auth-changed"));
+            const registeredRole = loginRes.data.data?.role?.toLowerCase();
             setTimeout(() => {
-              router.push("/");
+              if (registeredRole === "admin") {
+                router.push("/admin/dashboard");
+              } else {
+                router.push("/");
+              }
               router.refresh();
             }, 800);
             return;

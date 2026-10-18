@@ -1,14 +1,26 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
-import { 
-  Car, 
-  Sparkles, 
-  ShieldCheck, 
-  CreditCard, 
+import { usePathname } from "next/navigation";
+import {
+  Car,
+  Sparkles,
+  ShieldCheck,
+  CreditCard,
   Headphones
 } from "lucide-react";
 
 export default function Footer() {
+  const pathname = usePathname();
+
+  // 🔴 Admin / Dashboard রাউটে থাকলে ফুটার সম্পূর্ণ হাইড থাকবে
+  const isAdminRoute = pathname?.startsWith("/admin") || pathname === "/dashboard";
+
+  if (isAdminRoute) {
+    return null;
+  }
+
   return (
     <footer className="relative bg-slate-950 border-t border-slate-900 overflow-hidden">
       {/* Decorative gradient glow */}

@@ -1,18 +1,18 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Sparkles, 
-  Send, 
-  Bot, 
-  User, 
-  ArrowRight, 
-  RotateCcw, 
-  Loader2, 
-  Zap, 
-  ShieldCheck, 
+import {
+  Sparkles,
+  Send,
+  Bot,
+  User,
+  ArrowRight,
+  RotateCcw,
+  Loader2,
+  Zap,
+  ShieldCheck,
   Star,
   Users,
   Gauge
@@ -45,12 +45,7 @@ export default function AiAssistantPage() {
 
   const [inputQuery, setInputQuery] = useState("");
   const [loading, setLoading] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Auto-scroll to bottom of chat when new message arrives
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, loading]);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const quickPrompts = [
     {
@@ -75,7 +70,6 @@ export default function AiAssistantPage() {
     },
   ];
 
-  // Client fallback recommendation generator when backend API is offline or rate-limited
   const generateFallbackRecommendation = (query: string): { text: string; matchingCars: RecommendedCar[] } => {
     const q = query.toLowerCase();
     let matches: RecommendedCar[] = [];
@@ -115,7 +109,6 @@ export default function AiAssistantPage() {
       }));
     }
 
-    // Default to top 2 handpicked vehicles if no specific keyword matched
     if (matches.length === 0) {
       matches = MOCK_CARS.slice(0, 2).map((c) => ({
         ...c,
@@ -136,7 +129,6 @@ export default function AiAssistantPage() {
     const trimmed = textToSend.trim();
     if (!trimmed || loading) return;
 
-    // 1. Append user message using pure sequential ID
     setMessages((prev) => [
       ...prev,
       {
@@ -150,7 +142,6 @@ export default function AiAssistantPage() {
     setLoading(true);
 
     try {
-      // 2. Call backend AI recommendation API
       const res = await api.post("/ai/recommend", {
         prompt: trimmed,
       });
@@ -167,7 +158,6 @@ export default function AiAssistantPage() {
           },
         ]);
       } else {
-        // Use client fallback if backend returned non-success
         const fallback = generateFallbackRecommendation(trimmed);
         setMessages((prev) => [
           ...prev,
@@ -181,7 +171,6 @@ export default function AiAssistantPage() {
         ]);
       }
     } catch {
-      // Friendly fallback if API is unreachable or rate-limited
       const fallback = generateFallbackRecommendation(trimmed);
       setMessages((prev) => [
         ...prev,
@@ -195,6 +184,13 @@ export default function AiAssistantPage() {
       ]);
     } finally {
       setLoading(false);
+      // Soft internal scroll inside container only if overflow exists
+      if (chatContainerRef.current) {
+        chatContainerRef.current.scrollTo({
+          top: chatContainerRef.current.scrollHeight,
+          behavior: "smooth",
+        });
+      }
     }
   };
 
@@ -210,25 +206,24 @@ export default function AiAssistantPage() {
   };
 
   return (
-    <div className="relative min-h-screen bg-[#090d16] text-slate-100 pt-28 pb-16 flex flex-col items-center">
+    <div className="relative min-h-screen bg-[#030712] text-slate-100 pt-28 pb-12 flex flex-col items-center overflow-x-hidden">
       {/* Background ambient lighting */}
-      <div className="absolute top-20 left-1/3 w-[650px] h-[400px] bg-blue-600/10 blur-[160px] pointer-events-none rounded-full" />
-      <div className="absolute top-96 right-10 w-[500px] h-[400px] bg-cyan-500/10 blur-[150px] pointer-events-none rounded-full" />
+      <div className="absolute top-20 left-1/4 w-[500px] h-[500px] bg-blue-600/10 blur-[150px] pointer-events-none rounded-full" />
+      <div className="absolute top-[40%] right-10 w-[450px] h-[450px] bg-cyan-500/10 blur-[150px] pointer-events-none rounded-full" />
 
-      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex-1 flex flex-col">
-        {/* =========================================================================
-            HEADER SECTION
-           ========================================================================= */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-6 border-b border-slate-800/80">
+      <div className="w-full max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 flex-1 flex flex-col z-10">
+
+        {/* HEADER SECTION */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 mb-5 border-b border-white/10">
           <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-400 p-[1.5px] shadow-lg shadow-blue-500/25">
-                <div className="w-full h-full bg-[#090d16] rounded-[10px] flex items-center justify-center">
-                  <Sparkles className="w-4 h-4 text-cyan-300" />
+            <div className="flex items-center gap-2.5 mb-1">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-cyan-400 to-indigo-600 p-[1.5px] shadow-[0_0_15px_rgba(37,99,235,0.4)]">
+                <div className="w-full h-full bg-[#050b18] rounded-[10px] flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-cyan-300 animate-pulse" />
                 </div>
               </div>
               <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">
-                DriveVue Smart AI Assistant
+                Drive<span className="text-blue-500">Vue</span> AI Mobility Assistant
               </h1>
             </div>
             <p className="text-xs sm:text-sm text-slate-400">
@@ -237,31 +232,33 @@ export default function AiAssistantPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Live Gemini Indicator Badge */}
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/90 border border-cyan-500/30 text-xs font-semibold text-cyan-300 shadow-sm backdrop-blur-md">
+            <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-xs font-semibold backdrop-blur-md transition-all duration-300 ${loading
+                ? "bg-cyan-500/20 border-cyan-400 text-cyan-200 shadow-[0_0_15px_rgba(6,182,212,0.4)]"
+                : "bg-slate-900/90 border-cyan-500/30 text-cyan-300 shadow-md"
+              }`}>
               <span className="flex h-2 w-2 relative">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400"></span>
               </span>
-              <span>Gemini 2.5 Powered</span>
+              <span>{loading ? "AI Processing Neural Search..." : "Gemini 2.5 Active"}</span>
             </div>
 
-            {/* Reset Chat Button */}
             <button
               type="button"
               onClick={handleResetChat}
-              className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-850 transition-colors"
-              title="New Chat Session"
+              className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 transition-all shadow-sm"
+              title="Reset Chat Session"
             >
               <RotateCcw className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* =========================================================================
-            CHAT MESSAGE HISTORY CONTAINER
-           ========================================================================= */}
-        <div className="flex-1 min-h-[460px] rounded-3xl bg-slate-950/60 border border-slate-800/80 p-4 sm:p-6 backdrop-blur-xl shadow-2xl overflow-y-auto space-y-6">
+        {/* CHAT MESSAGE HISTORY CONTAINER */}
+        <div
+          ref={chatContainerRef}
+          className="flex-1 h-[480px] sm:h-[540px] rounded-3xl bg-[#070d1e]/80 border border-white/10 p-4 sm:p-6 backdrop-blur-2xl shadow-2xl overflow-y-auto space-y-6 scrollbar-thin scrollbar-thumb-slate-800"
+        >
           <AnimatePresence initial={false}>
             {messages.map((msg, index) => (
               <motion.div
@@ -269,32 +266,27 @@ export default function AiAssistantPage() {
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.25 }}
-                className={`flex gap-3 sm:gap-4 ${
-                  msg.sender === "user" ? "justify-end" : "justify-start"
-                }`}
+                className={`flex gap-3 sm:gap-4 ${msg.sender === "user" ? "justify-end" : "justify-start"
+                  }`}
               >
-                {/* Assistant Avatar */}
                 {msg.sender === "assistant" && (
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center text-white shrink-0 shadow-md shadow-blue-500/20">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center text-white shrink-0 shadow-lg shadow-blue-500/30">
                     <Bot className="w-4 h-4" />
                   </div>
                 )}
 
-                {/* Message Body */}
                 <div
-                  className={`max-w-[85%] sm:max-w-2xl rounded-2xl p-4 sm:p-5 shadow-lg ${
-                    msg.sender === "user"
-                      ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-tr-none"
-                      : "bg-slate-900/90 border border-slate-800/90 text-slate-200 rounded-tl-none"
-                  }`}
+                  className={`max-w-[88%] sm:max-w-2xl rounded-2xl p-4 sm:p-5 shadow-xl ${msg.sender === "user"
+                      ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-tr-none shadow-blue-600/20"
+                      : "bg-[#0b1329] border border-white/10 text-slate-200 rounded-tl-none shadow-black/40"
+                    }`}
                 >
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                  <p className="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">
                     {msg.text}
                   </p>
 
-                  {/* Attached Recommended Car Cards */}
                   {msg.matchingCars && msg.matchingCars.length > 0 && (
-                    <div className="mt-5 pt-4 border-t border-slate-800/80 space-y-3">
+                    <div className="mt-5 pt-4 border-t border-white/10 space-y-3">
                       <span className="text-[11px] font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
                         <Sparkles className="w-3.5 h-3.5" />
                         AI Recommended Vehicles ({msg.matchingCars.length}):
@@ -304,10 +296,9 @@ export default function AiAssistantPage() {
                         {msg.matchingCars.map((car, carIdx) => (
                           <div
                             key={`car-${car._id || car.id || carIdx}-${carIdx}`}
-                            className="group rounded-2xl bg-slate-950/80 border border-slate-800 hover:border-blue-500/50 p-3.5 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/10 flex flex-col justify-between"
+                            className="group rounded-2xl bg-[#050b18] border border-white/10 hover:border-cyan-500/50 p-3.5 transition-all duration-300 hover:shadow-2xl hover:shadow-cyan-500/10 flex flex-col justify-between"
                           >
                             <div>
-                              {/* Car Image with Badge */}
                               <div className="relative h-32 w-full rounded-xl overflow-hidden bg-slate-900 mb-2.5">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img
@@ -319,27 +310,25 @@ export default function AiAssistantPage() {
                                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                 />
                                 <div className="absolute top-2 left-2">
-                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-black/70 text-cyan-300 border border-cyan-400/30 backdrop-blur-md">
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-black/75 text-cyan-300 border border-cyan-400/30 backdrop-blur-md">
                                     {car.category || "Vehicle"}
                                   </span>
                                 </div>
-                                <div className="absolute bottom-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/70 text-amber-300 text-[10px] border border-amber-400/20">
+                                <div className="absolute bottom-2 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/75 text-amber-300 text-[10px] border border-amber-400/20">
                                   <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
                                   <span>4.98</span>
                                 </div>
                               </div>
 
-                              {/* Title & Brand */}
                               <div className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-blue-400">
                                 <span>{car.brand}</span>
                                 <span>•</span>
                                 <span>{car.year || 2024}</span>
                               </div>
-                              <h4 className="text-sm font-bold text-white group-hover:text-blue-300 transition-colors truncate">
+                              <h4 className="text-sm font-bold text-white group-hover:text-cyan-300 transition-colors truncate">
                                 {car.name || `${car.brand} ${car.model}`}
                               </h4>
 
-                              {/* Specs Row */}
                               <div className="flex items-center gap-3 my-2 text-[11px] text-slate-400">
                                 <span className="flex items-center gap-1">
                                   <Users className="w-3 h-3 text-blue-400" />
@@ -355,7 +344,6 @@ export default function AiAssistantPage() {
                                 </span>
                               </div>
 
-                              {/* AI Reasoning Pill */}
                               {car.aiReason && (
                                 <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-[11px] text-cyan-200/90 leading-relaxed my-2">
                                   <span className="font-semibold text-cyan-300">Why matched: </span>
@@ -364,8 +352,7 @@ export default function AiAssistantPage() {
                               )}
                             </div>
 
-                            {/* Price & Rent CTA */}
-                            <div className="pt-2.5 mt-2 border-t border-slate-800/80 flex items-center justify-between">
+                            <div className="pt-2.5 mt-2 border-t border-white/10 flex items-center justify-between">
                               <div>
                                 <span className="text-base font-extrabold text-white">
                                   ${car.pricePerDay}
@@ -376,13 +363,13 @@ export default function AiAssistantPage() {
                               <div className="flex items-center gap-1.5">
                                 <Link
                                   href={`/cars/${car._id || car.id}`}
-                                  className="px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-slate-300 hover:text-white bg-slate-900 hover:bg-slate-800 transition-colors"
+                                  className="px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 transition-colors"
                                 >
                                   Details
                                 </Link>
                                 <Link
                                   href={`/cars/${car._id || car.id}?action=rent`}
-                                  className="px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-[#2563eb] hover:bg-[#1d4ed8] shadow-md shadow-blue-600/30 hover:scale-[1.02] transition-all flex items-center gap-1"
+                                  className="px-3 py-1.5 rounded-lg text-[11px] font-bold text-white bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 shadow-md shadow-blue-600/30 hover:scale-[1.02] transition-all flex items-center gap-1"
                                 >
                                   <span>Rent</span>
                                   <ArrowRight className="w-3 h-3" />
@@ -400,79 +387,79 @@ export default function AiAssistantPage() {
                   </div>
                 </div>
 
-                {/* User Avatar */}
                 {msg.sender === "user" && (
-                  <div className="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 shrink-0 shadow-md">
+                  <div className="w-9 h-9 rounded-xl bg-blue-600/30 border border-blue-400/40 flex items-center justify-center text-blue-300 shrink-0 shadow-lg">
                     <User className="w-4 h-4" />
                   </div>
                 )}
               </motion.div>
             ))}
 
-            {/* AI Thinking/Typing Indicator */}
+            {/* In-chat Floating Thinking Loader */}
             {loading && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="flex gap-3 items-center text-xs text-cyan-400"
               >
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center text-white shrink-0 shadow-md animate-pulse">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center text-white shrink-0 shadow-lg animate-pulse">
                   <Bot className="w-4 h-4" />
                 </div>
-                <div className="px-4 py-3 rounded-2xl bg-slate-900 border border-slate-800 flex items-center gap-2.5">
+                <div className="px-4 py-3 rounded-2xl bg-[#0b1329] border border-cyan-500/30 flex items-center gap-2.5 shadow-[0_0_20px_rgba(6,182,212,0.15)]">
                   <Loader2 className="w-4 h-4 animate-spin text-cyan-400" />
-                  <span>Analyzing fleet inventory & passenger requirements...</span>
+                  <span className="font-semibold tracking-wide">Analyzing DriveVue fleet inventory & requirements...</span>
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
-          <div ref={messagesEndRef} />
         </div>
 
-        {/* =========================================================================
-            QUICK PROMPT CHIPS
-           ========================================================================= */}
+        {/* QUICK PROMPT CHIPS */}
         <div className="mt-4 mb-3 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-          <span className="text-xs text-slate-500 shrink-0 font-medium">Quick Prompts:</span>
+          <span className="text-xs text-slate-400 shrink-0 font-semibold">Quick Prompts:</span>
           {quickPrompts.map((p, pIdx) => (
             <button
               key={`prompt-${p.label}-${pIdx}`}
               type="button"
               disabled={loading}
               onClick={() => handleSendMessage(p.query)}
-              className="px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 hover:border-blue-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shrink-0"
+              className="px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap bg-[#0b1329] hover:bg-[#131b2e] text-slate-300 hover:text-white border border-white/10 hover:border-cyan-400/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm shrink-0"
             >
               {p.label}
             </button>
           ))}
         </div>
 
-        {/* =========================================================================
-            INPUT BAR
-           ========================================================================= */}
+        {/* INPUT BAR WITH INLINE LOADER */}
         <form
           onSubmit={(e) => {
             e.preventDefault();
             handleSendMessage(inputQuery);
           }}
-          className="relative rounded-2xl bg-slate-900/90 border border-slate-800 p-2 shadow-2xl backdrop-blur-xl flex items-center gap-2 focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all"
+          className={`relative rounded-2xl bg-[#0b1329]/95 border p-2.5 shadow-2xl backdrop-blur-2xl flex items-center gap-2.5 transition-all duration-300 ${loading
+              ? "border-cyan-400/60 shadow-[0_0_25px_rgba(6,182,212,0.25)]"
+              : "border-white/15 focus-within:border-cyan-400 focus-within:ring-2 focus-within:ring-cyan-400/20"
+            }`}
         >
           <input
             type="text"
             value={inputQuery}
             onChange={(e) => setInputQuery(e.target.value)}
             disabled={loading}
-            placeholder="Describe your trip, group size, or desired car vibe... (e.g., 'Eco-friendly roadtrip car for 4 friends')"
-            className="w-full bg-transparent px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none disabled:opacity-50"
+            placeholder={loading ? "DriveVue AI is finding your best vehicle..." : "Describe your trip, group size, or desired car vibe..."}
+            className="w-full bg-transparent px-3 py-2 text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none disabled:opacity-70"
           />
 
           <button
             type="submit"
             disabled={loading || !inputQuery.trim()}
-            className="px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider text-white bg-[#2563eb] hover:bg-[#1d4ed8] shadow-lg shadow-blue-600/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 shrink-0 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+            className="px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider text-white bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-500 hover:from-blue-500 hover:to-cyan-400 shadow-[0_0_20px_rgba(37,99,235,0.4)] hover:shadow-[0_0_25px_rgba(6,182,212,0.6)] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 shrink-0 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
           >
             {loading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <>
+                <Loader2 className="w-4 h-4 animate-spin text-white" />
+                <span>Searching</span>
+              </>
             ) : (
               <>
                 <span>Send</span>
@@ -482,13 +469,13 @@ export default function AiAssistantPage() {
           </button>
         </form>
 
-        {/* Footer note */}
-        <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500 px-2">
+        {/* FOOTER NOTE */}
+        <div className="mt-3 flex items-center justify-between text-[11px] text-slate-400 px-2">
           <span className="flex items-center gap-1">
-            <ShieldCheck className="w-3.5 h-3.5 text-blue-400" />
+            <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
             AI vehicle match accuracy verified against real-time fleet telemetry.
           </span>
-          <Link href="/cars" className="text-blue-400 hover:underline">
+          <Link href="/cars" className="text-cyan-400 hover:underline font-medium">
             Browse All Cars
           </Link>
         </div>
