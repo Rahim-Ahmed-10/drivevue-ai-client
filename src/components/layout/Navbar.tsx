@@ -159,12 +159,16 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-3">
             {currentUser ? (
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800 text-sm text-slate-200">
-                  <div className="w-6 h-6 rounded-full bg-blue-600/30 border border-blue-500/40 flex items-center justify-center text-blue-400 text-xs font-bold">
+                <Link
+                  href="/dashboard"
+                  className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800/80 border border-slate-800 hover:border-slate-700 text-sm text-slate-200 transition-colors group"
+                  title="Go to User Dashboard"
+                >
+                  <div className="w-6 h-6 rounded-full bg-blue-600/30 border border-blue-500/40 flex items-center justify-center text-blue-400 text-xs font-bold group-hover:scale-105 transition-transform">
                     <User className="w-3.5 h-3.5" />
                   </div>
                   <span className="font-medium max-w-[120px] truncate">{currentUser.name}</span>
-                </div>
+                </Link>
                 <button
                   type="button"
                   onClick={handleLogout}
