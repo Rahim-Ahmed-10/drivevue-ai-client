@@ -3,23 +3,23 @@
 import React, { useState, useEffect, useMemo, useSyncExternalStore, Suspense } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { 
-  ArrowLeft, 
-  Sparkles, 
-  ShieldCheck, 
-  CreditCard, 
-  Zap, 
-  Fuel, 
-  Users, 
-  Gauge, 
-  CheckCircle2, 
-  Star, 
-  Calendar, 
-  Lock, 
-  Loader2, 
-  AlertCircle, 
-  Clock, 
-  Check 
+import {
+  ArrowLeft,
+  Sparkles,
+  ShieldCheck,
+  CreditCard,
+  Zap,
+  Fuel,
+  Users,
+  Gauge,
+  CheckCircle2,
+  Star,
+  Calendar,
+  Lock,
+  Loader2,
+  AlertCircle,
+  Clock,
+  Check
 } from "lucide-react";
 import api from "@/lib/api";
 import { Car } from "@/types/car";
@@ -91,7 +91,6 @@ function CarDetailsContent() {
     if (list.length === 0) {
       list.push("https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=1200&q=80");
     }
-    // Add additional perspectives if car only has 1 image
     if (list.length === 1) {
       list.push(
         "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80",
@@ -150,7 +149,7 @@ function CarDetailsContent() {
     "Supercharging / Fuel Refill Credit",
   ];
 
-  // Stripe Checkout Action Handler
+  // 🚀 Direct Stripe Checkout Action Handler
   const handleProceedToCheckout = async () => {
     setCheckoutError("");
 
@@ -159,52 +158,36 @@ function CarDetailsContent() {
       return;
     }
 
+    // Resolve MongoDB vehicle ObjectId (checking car._id, car.id, or route param carId)
+    const rawCarId = car._id || car.id || carId;
+    const isMongoId = rawCarId && /^[0-9a-fA-F]{24}$/.test(String(rawCarId));
+
+    if (!isMongoId) {
+      setCheckoutError("This demo vehicle is not linked to the live database. Please select an active vehicle from the fleet.");
+      return;
+    }
+
+    const targetCarId = String(rawCarId);
+
     // 1. Check authentication
     if (!isAuthenticated) {
-      router.push(`/login?redirect=/cars/${car._id || car.id}`);
+      router.push(`/login?redirect=/cars/${targetCarId}`);
       return;
     }
 
     setIsCheckingOut(true);
 
     try {
-      let bookingId = "";
-
-      // 2. If it's a valid 24-character MongoDB ObjectId, create booking first
-      const isMongoId = Boolean(car._id && /^[0-9a-fA-F]{24}$/.test(car._id));
-
-      if (isMongoId) {
-        try {
-          const bookingRes = await api.post("/api/bookings", {
-            car: car._id,
-            startDate: pickupDate,
-            endDate: returnDate,
-          });
-
-          if (bookingRes.data && bookingRes.data.data) {
-            bookingId = bookingRes.data.data._id;
-          }
-        } catch (bookingErr: unknown) {
-          console.warn("[Stripe Flow] Booking creation pre-check error:", bookingErr);
-        }
-      }
-
-      // 3. Request Stripe Checkout Session
-      const sessionPayload: Record<string, string> = {
+      // 2. Direct request to Stripe Checkout Session (Backend handles booking lifecycle)
+      const sessionRes = await api.post("/api/payments/create-checkout-session", {
+        carId: targetCarId,
+        car: targetCarId,
         startDate: pickupDate,
         endDate: returnDate,
-      };
+        totalAmount: totalAmount,
+      });
 
-      if (bookingId) {
-        sessionPayload.bookingId = bookingId;
-      }
-      if (car._id) {
-        sessionPayload.carId = car._id;
-      }
-
-      const sessionRes = await api.post("/api/payments/create-checkout-session", sessionPayload);
-
-      // Extract Stripe checkout URL from response (starts with https://checkout.stripe.com)
+      // Extract Stripe checkout URL from response
       const checkoutUrl =
         sessionRes.data?.url ||
         sessionRes.data?.data?.url ||
@@ -219,7 +202,30 @@ function CarDetailsContent() {
       setCheckoutError("Unable to retrieve Stripe checkout URL from server response.");
     } catch (err: unknown) {
       console.error("[Stripe Flow Error]:", err);
-      const apiErr = err as { response?: { data?: { message?: string } }; message?: string };
+      const apiErr = err as {
+        response?: {
+          status?: number;
+          data?: { message?: string };
+        };
+        message?: string;
+      };
+
+      if (apiErr?.response?.status === 401) {
+        setCheckoutError("Your login session has expired. Please sign in again.");
+        router.push(`/login?redirect=/cars/${targetCarId}`);
+        return;
+      }
+
+      if (apiErr?.response?.status === 404) {
+        setCheckoutError(apiErr?.response?.data?.message || "Vehicle not found in the fleet database.");
+        return;
+      }
+
+      if (apiErr?.response?.status === 400) {
+        setCheckoutError(apiErr?.response?.data?.message || "Invalid reservation parameters. Please check your dates.");
+        return;
+      }
+
       const errorMsg =
         apiErr?.response?.data?.message ||
         apiErr?.message ||
@@ -252,13 +258,10 @@ function CarDetailsContent() {
           </span>
         </div>
 
-        {/* =========================================================================
-            VEHICLE SHOWCASE & BOOKING SPLIT LAYOUT
-           ========================================================================= */}
+        {/* VEHICLE SHOWCASE & BOOKING SPLIT LAYOUT */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-          {/* Left Column: Visual Gallery & Specs (2 cols on desktop) */}
+          {/* Left Column: Visual Gallery & Specs */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Main Car Visual Card */}
             <div className="relative rounded-3xl overflow-hidden bg-slate-900/60 border border-slate-800 shadow-2xl">
               <div className="relative h-80 sm:h-[440px] w-full overflow-hidden bg-slate-950">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -269,7 +272,6 @@ function CarDetailsContent() {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-black/30 pointer-events-none" />
 
-                {/* Badges on image */}
                 <div className="absolute top-4 left-4 flex items-center gap-2">
                   <span className="px-3 py-1 rounded-xl text-xs font-bold uppercase tracking-wider bg-slate-950/85 border border-slate-700 text-blue-300 backdrop-blur-md">
                     {car.category || "Luxury"}
@@ -293,25 +295,20 @@ function CarDetailsContent() {
                 </div>
               </div>
 
-              {/* Clickable Multi-Angle Thumbnail Strip */}
+              {/* Thumbnail Strip */}
               <div className="p-3 bg-slate-950/70 border-t border-slate-800 flex items-center gap-3 overflow-x-auto">
                 {galleryImages.map((img, idx) => (
                   <button
                     key={`thumb-${idx}`}
                     type="button"
                     onClick={() => setActiveImageIndex(idx)}
-                    className={`relative w-20 h-14 rounded-xl overflow-hidden shrink-0 border-2 transition-all ${
-                      activeImageIndex === idx
+                    className={`relative w-20 h-14 rounded-xl overflow-hidden shrink-0 border-2 transition-all ${activeImageIndex === idx
                         ? "border-blue-500 shadow-md shadow-blue-500/30 scale-105"
                         : "border-slate-800 opacity-60 hover:opacity-100"
-                    }`}
+                      }`}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={img}
-                      alt={`View ${idx + 1}`}
-                      className="w-full h-full object-cover"
-                    />
+                    <img src={img} alt={`View ${idx + 1}`} className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>
@@ -328,34 +325,26 @@ function CarDetailsContent() {
                 </h1>
                 <p className="text-sm text-slate-400 mt-2 leading-relaxed">
                   Engineered for seamless acceleration, whisper-quiet cabin aerodynamics, and state-of-the-art telemetry.
-                  Equipped with live concierge navigation, high-fidelity acoustics, and instant smartphone keyless access.
                 </p>
               </div>
 
-              {/* Key Specs Grid */}
+              {/* Specs Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-slate-800">
                 <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800/80 text-center">
                   <Users className="w-5 h-5 text-blue-400 mx-auto mb-1.5" />
                   <span className="text-[11px] text-slate-400 uppercase tracking-wider block">Seats</span>
                   <span className="text-sm font-bold text-white">{car.seats || 5} Passengers</span>
                 </div>
-
                 <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800/80 text-center">
-                  {isElectric ? (
-                    <Zap className="w-5 h-5 text-cyan-400 mx-auto mb-1.5" />
-                  ) : (
-                    <Fuel className="w-5 h-5 text-indigo-400 mx-auto mb-1.5" />
-                  )}
+                  {isElectric ? <Zap className="w-5 h-5 text-cyan-400 mx-auto mb-1.5" /> : <Fuel className="w-5 h-5 text-indigo-400 mx-auto mb-1.5" />}
                   <span className="text-[11px] text-slate-400 uppercase tracking-wider block">Powertrain</span>
                   <span className="text-sm font-bold text-white">{car.fuelType || "Electric"}</span>
                 </div>
-
                 <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800/80 text-center">
                   <Gauge className="w-5 h-5 text-purple-400 mx-auto mb-1.5" />
                   <span className="text-[11px] text-slate-400 uppercase tracking-wider block">Transmission</span>
                   <span className="text-sm font-bold text-white">{car.transmission || "Automatic"}</span>
                 </div>
-
                 <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800/80 text-center">
                   <Sparkles className="w-5 h-5 text-emerald-400 mx-auto mb-1.5" />
                   <span className="text-[11px] text-slate-400 uppercase tracking-wider block">AI Match</span>
@@ -363,11 +352,9 @@ function CarDetailsContent() {
                 </div>
               </div>
 
-              {/* Vehicle Features & Amenities */}
+              {/* Features & Amenities */}
               <div className="pt-4 border-t border-slate-800 space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">
-                  Vehicle Highlights & Amenities:
-                </h4>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">Vehicle Highlights & Amenities:</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs text-slate-300">
                   {carFeatures.map((feat, fIdx) => (
                     <div key={`feat-${fIdx}`} className="flex items-center gap-2">
@@ -377,38 +364,12 @@ function CarDetailsContent() {
                   ))}
                 </div>
               </div>
-
-              {/* Rental Policies */}
-              <div className="pt-4 border-t border-slate-800 space-y-2.5">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">
-                  DriveVue Rental Policies:
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-400">
-                  <div className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>Free cancellation up to 24 hours prior</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>Comprehensive collision damage waiver</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>Unlimited highway miles included</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>24/7 dedicated concierge roadside dispatch</span>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
 
           {/* Right Column: Sticky Booking Widget & Stripe Checkout */}
           <div className="lg:col-span-1">
             <div className="sticky top-28 rounded-3xl bg-slate-900/85 border border-slate-800/90 p-6 sm:p-7 shadow-2xl backdrop-blur-xl space-y-6">
-              {/* Daily Rate Header */}
               <div className="pb-4 border-b border-slate-800 flex items-baseline justify-between">
                 <div>
                   <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Daily Rate</span>
@@ -417,26 +378,21 @@ function CarDetailsContent() {
                     <span className="text-xs text-slate-400"> / day</span>
                   </div>
                 </div>
-
                 <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-full">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   <span>Instant Hold</span>
                 </div>
               </div>
 
-              {/* Date Selection Form */}
+              {/* Date Selection */}
               <div className="space-y-3.5">
                 <label className="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 text-blue-400" />
                   Trip Dates
                 </label>
-
                 <div className="grid grid-cols-1 gap-2.5">
-                  {/* Pick-up Date Input */}
-                  <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 focus-within:border-blue-500 transition-colors">
-                    <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
-                      Pick-up Date
-                    </label>
+                  <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
+                    <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Pick-up Date</label>
                     <input
                       type="date"
                       min={todayStr}
@@ -445,12 +401,8 @@ function CarDetailsContent() {
                       className="w-full bg-transparent text-xs text-white focus:outline-none [color-scheme:dark]"
                     />
                   </div>
-
-                  {/* Return Date Input */}
-                  <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 focus-within:border-blue-500 transition-colors">
-                    <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
-                      Return Date
-                    </label>
+                  <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
+                    <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Return Date</label>
                     <input
                       type="date"
                       min={pickupDate}
@@ -461,7 +413,6 @@ function CarDetailsContent() {
                   </div>
                 </div>
 
-                {/* Date Validation Alert */}
                 {dateError && (
                   <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center gap-2 text-xs text-red-300">
                     <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
@@ -470,25 +421,15 @@ function CarDetailsContent() {
                 )}
               </div>
 
-              {/* Automatic Price Calculation */}
+              {/* Price Calculation */}
               <div className="space-y-2.5 py-4 border-y border-slate-800 text-xs text-slate-300">
                 <div className="flex justify-between">
-                  <span>
-                    ${car.pricePerDay} × {rentalDays} {rentalDays === 1 ? "day" : "days"}
-                  </span>
+                  <span>${car.pricePerDay} × {rentalDays} {rentalDays === 1 ? "day" : "days"}</span>
                   <span className="font-semibold text-white">${subtotal}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>State Tax & Registration (8%)</span>
                   <span className="font-semibold text-slate-300">${tax}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>DriveVue AI Concierge</span>
-                  <span className="text-emerald-400 font-semibold">FREE</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Standard Vehicle Protection</span>
-                  <span className="text-emerald-400 font-semibold">$0 Deposit</span>
                 </div>
                 <div className="pt-2 border-t border-slate-800 flex justify-between items-baseline font-bold text-sm text-white">
                   <span>Total Due</span>
@@ -496,20 +437,6 @@ function CarDetailsContent() {
                 </div>
               </div>
 
-              {/* Unauthenticated User Warning */}
-              {!isAuthenticated && (
-                <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300 space-y-1.5">
-                  <div className="flex items-center gap-1.5 font-bold">
-                    <Clock className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Sign In Required</span>
-                  </div>
-                  <p className="text-[11px] text-amber-200/90">
-                    Please sign in to lock your reservation and receive your digital key.
-                  </p>
-                </div>
-              )}
-
-              {/* Error feedback */}
               {checkoutError && (
                 <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center gap-2 text-xs text-red-300">
                   <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
@@ -517,13 +444,13 @@ function CarDetailsContent() {
                 </div>
               )}
 
-              {/* Stripe Checkout Primary CTA */}
+              {/* Stripe Checkout CTA */}
               <div className="space-y-3">
                 <button
                   type="button"
                   disabled={isCheckingOut || Boolean(dateError) || rentalDays <= 0}
                   onClick={handleProceedToCheckout}
-                  className="w-full py-4 rounded-2xl font-bold text-sm text-white bg-[#2563eb] hover:bg-[#1d4ed8] shadow-xl shadow-blue-600/30 hover:shadow-blue-600/50 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-4 rounded-2xl font-bold text-sm text-white bg-[#2563eb] hover:bg-[#1d4ed8] shadow-xl shadow-blue-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isCheckingOut ? (
                     <>
@@ -537,22 +464,6 @@ function CarDetailsContent() {
                     </>
                   )}
                 </button>
-
-                <p className="text-[11px] text-center text-slate-400">
-                  Guaranteed PCI-DSS bank-grade Stripe encryption.
-                </p>
-              </div>
-
-              {/* Security & Payment Badges */}
-              <div className="pt-2 flex items-center justify-center gap-5 text-[11px] text-slate-400 border-t border-slate-800">
-                <div className="flex items-center gap-1">
-                  <CreditCard className="w-3.5 h-3.5 text-blue-400" />
-                  <span>Stripe Verified</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>256-Bit SSL</span>
-                </div>
               </div>
             </div>
           </div>
