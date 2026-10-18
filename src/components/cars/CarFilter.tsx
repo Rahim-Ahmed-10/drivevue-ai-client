@@ -1,10 +1,10 @@
 "use client";
 
 import React from "react";
-import { 
-  Search, 
-  RotateCcw, 
-  X, 
+import {
+  Search,
+  RotateCcw,
+  X,
   SlidersHorizontal,
   Zap,
   Car as CarIcon
@@ -141,11 +141,10 @@ export default function CarFilter({
                 key={cat.id || "all"}
                 type="button"
                 onClick={() => onChange({ category: cat.id })}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ${
-                  isSelected
-                    ? "bg-[#2563eb] text-white shadow-md shadow-blue-600/30"
-                    : "bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-slate-850"
-                }`}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ${isSelected
+                  ? "bg-[#2563eb] text-white shadow-md shadow-blue-600/30"
+                  : "bg-slate-950/60 text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-slate-850"
+                  }`}
               >
                 {cat.label}
               </button>
@@ -214,11 +213,10 @@ export default function CarFilter({
                 key={fuel.id || "all-fuels"}
                 type="button"
                 onClick={() => onChange({ fuelType: fuel.id })}
-                className={`px-2.5 py-1.5 rounded-lg text-xs font-medium text-left truncate transition-colors ${
-                  isSelected
-                    ? "bg-indigo-600/30 text-cyan-300 border border-indigo-500/40"
-                    : "bg-slate-950/60 text-slate-400 hover:bg-slate-800 border border-slate-850"
-                }`}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-medium text-left truncate transition-colors ${isSelected
+                  ? "bg-indigo-600/30 text-cyan-300 border border-indigo-500/40"
+                  : "bg-slate-950/60 text-slate-400 hover:bg-slate-800 border border-slate-850"
+                  }`}
               >
                 {fuel.label}
               </button>
@@ -241,11 +239,10 @@ export default function CarFilter({
                 key={trans.id || "all-trans"}
                 type="button"
                 onClick={() => onChange({ transmission: trans.id })}
-                className={`py-1.5 rounded-lg text-[11px] font-medium text-center truncate transition-colors ${
-                  isSelected
-                    ? "bg-blue-600/30 text-white border border-blue-500/40"
-                    : "bg-slate-950/60 text-slate-400 hover:bg-slate-800 border border-slate-850"
-                }`}
+                className={`py-1.5 rounded-lg text-[11px] font-medium text-center truncate transition-colors ${isSelected
+                  ? "bg-blue-600/30 text-white border border-blue-500/40"
+                  : "bg-slate-950/60 text-slate-400 hover:bg-slate-800 border border-slate-850"
+                  }`}
               >
                 {trans.label.replace("All Transmissions", "All")}
               </button>
@@ -272,14 +269,12 @@ export default function CarFilter({
             onClick={() =>
               onChange({ isAvailableOnly: !filters.isAvailableOnly })
             }
-            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-              filters.isAvailableOnly ? "bg-blue-600" : "bg-slate-800"
-            }`}
+            className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${filters.isAvailableOnly ? "bg-blue-600" : "bg-slate-800"
+              }`}
           >
             <span
-              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                filters.isAvailableOnly ? "translate-x-4" : "translate-x-0"
-              }`}
+              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${filters.isAvailableOnly ? "translate-x-4" : "translate-x-0"
+                }`}
             />
           </button>
         </label>

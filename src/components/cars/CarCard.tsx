@@ -3,13 +3,13 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { 
-  Users, 
-  Zap, 
-  Fuel, 
-  Gauge, 
-  ArrowRight, 
-  ShieldCheck, 
+import {
+  Users,
+  Zap,
+  Fuel,
+  Gauge,
+  ArrowRight,
+  ShieldCheck,
   Star
 } from "lucide-react";
 import { Car } from "@/types/car";

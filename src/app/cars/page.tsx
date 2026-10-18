@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { 
-  Car as CarIcon, 
-  Sparkles, 
-  SlidersHorizontal, 
-  RotateCcw, 
+import {
+  Car as CarIcon,
+  Sparkles,
+  SlidersHorizontal,
+  RotateCcw,
   ArrowUpDown,
   X
 } from "lucide-react";
@@ -210,7 +210,7 @@ function CarsListingContent() {
                 Explore Our Fleet
               </h1>
               <p className="text-sm text-slate-400 mt-2 max-w-xl">
-                Browse handpicked luxury cruisers, high-performance EVs, and premium SUVs. 
+                Browse handpicked luxury cruisers, high-performance EVs, and premium SUVs.
                 All vehicles feature digital smartphone keyless unlock and instant Stripe checkout.
               </p>
             </div>
@@ -343,7 +343,7 @@ function CarsListingContent() {
                     No Vehicles Found
                   </h3>
                   <p className="text-xs text-slate-400 leading-relaxed">
-                    We couldn&apos;t find any vehicles matching your current search or filter criteria. 
+                    We couldn&apos;t find any vehicles matching your current search or filter criteria.
                     Try broadening your price range or clearing category filters.
                   </p>
                 </div>
