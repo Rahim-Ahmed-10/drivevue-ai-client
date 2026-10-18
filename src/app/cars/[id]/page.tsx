@@ -204,34 +204,27 @@ function CarDetailsContent() {
 
       const sessionRes = await api.post("/payments/create-checkout-session", sessionPayload);
 
-      // Extract Stripe checkout URL from response
+      // Extract Stripe checkout URL from response (starts with https://checkout.stripe.com)
       const checkoutUrl =
-        sessionRes.data?.sessionUrl ||
         sessionRes.data?.url ||
-        sessionRes.data?.data?.sessionUrl ||
-        sessionRes.data?.data?.url;
+        sessionRes.data?.data?.url ||
+        sessionRes.data?.sessionUrl ||
+        sessionRes.data?.data?.sessionUrl;
 
       if (checkoutUrl) {
         window.location.href = checkoutUrl;
         return;
       }
 
-      // Fallback: If development mock session created
-      if (sessionRes.data?.sessionId) {
-        router.push(
-          `/payment/success?session_id=${sessionRes.data.sessionId}&booking_id=${bookingId || "BKG-2026-X889"}`
-        );
-        return;
-      }
-
-      // If backend was in mock mode with direct success
-      router.push(`/payment/success?session_id=cs_mock_success&booking_id=${bookingId || "BKG-2026-X889"}`);
+      setCheckoutError("Unable to retrieve Stripe checkout URL from server response.");
     } catch (err: unknown) {
-      console.warn("[Stripe Flow Error]:", err);
-      // If server error or mock mode, gracefully simulate instant reservation confirmation
-      router.push(
-        `/payment/success?session_id=cs_demo_checkout&booking_id=BKG-DEMO-${car.brand.toUpperCase()}`
-      );
+      console.error("[Stripe Flow Error]:", err);
+      const apiErr = err as { response?: { data?: { message?: string } }; message?: string };
+      const errorMsg =
+        apiErr?.response?.data?.message ||
+        apiErr?.message ||
+        "Payment connection error. Please try again or contact support.";
+      setCheckoutError(errorMsg);
     } finally {
       setIsCheckingOut(false);
     }
