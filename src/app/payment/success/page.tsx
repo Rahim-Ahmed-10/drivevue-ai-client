@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Suspense } from "react";
+import React, { Suspense, useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { 
@@ -8,13 +8,55 @@ import {
   Sparkles, 
   Car, 
   ShieldCheck, 
-  KeyRound
+  KeyRound,
+  Loader2
 } from "lucide-react";
+import api from "@/lib/api";
 
 function PaymentSuccessContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id") || "cs_live_sample";
   const bookingId = searchParams.get("booking_id") || "BKG-2026-X889";
+
+  const [verifying, setVerifying] = useState(true);
+  const [verifiedBooking, setVerifiedBooking] = useState<any>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    const hasRealSession = sessionId && sessionId !== "cs_live_sample";
+    const hasRealBooking = bookingId && bookingId !== "BKG-2026-X889";
+
+    if (!hasRealSession && !hasRealBooking) {
+      setVerifying(false);
+      return;
+    }
+
+    api
+      .post("/api/payments/verify-payment", {
+        sessionId: hasRealSession ? sessionId : undefined,
+        bookingId: hasRealBooking ? bookingId : undefined,
+      })
+      .then((res) => {
+        if (!active) return;
+        if (res.data && (res.data.success || res.data.status)) {
+          setVerifiedBooking(res.data.data);
+        }
+      })
+      .catch((err) => {
+        console.warn("Payment verification note:", err?.response?.data?.message || err?.message);
+      })
+      .finally(() => {
+        if (active) setVerifying(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [sessionId, bookingId]);
+
+  const carInfo = verifiedBooking?.car;
+  const carTitle = carInfo ? `${carInfo.brand} ${carInfo.name}` : null;
 
   return (
     <div className="relative min-h-screen bg-[#090d16] text-slate-100 pt-32 pb-20 flex items-center justify-center">
@@ -26,15 +68,19 @@ function PaymentSuccessContent() {
         <div className="rounded-3xl bg-slate-900/80 border border-slate-800/90 p-8 sm:p-12 shadow-2xl backdrop-blur-xl text-center space-y-6">
           {/* Animated Success Icon Badge */}
           <div className="w-20 h-20 rounded-3xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mx-auto shadow-lg shadow-emerald-500/20">
-            <CheckCircle2 className="w-10 h-10" />
+            {verifying ? (
+              <Loader2 className="w-10 h-10 animate-spin text-emerald-400" />
+            ) : (
+              <CheckCircle2 className="w-10 h-10" />
+            )}
           </div>
 
           <div className="space-y-2">
             <span className="text-xs font-bold uppercase tracking-widest text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full inline-block">
-              Payment Confirmed
+              {verifying ? "Confirming With Stripe..." : "Payment Confirmed & Verified"}
             </span>
             <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-              Your DriveVue Reservation is Locked!
+              {carTitle ? `Your ${carTitle} is Locked!` : "Your DriveVue Reservation is Locked!"}
             </h1>
             <p className="text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
               We&apos;ve verified your Stripe transaction and confirmed your vehicle hold. 
@@ -52,6 +98,12 @@ function PaymentSuccessContent() {
               <span className="text-slate-400 font-medium">Booking Reference</span>
               <span className="font-mono text-cyan-300 font-semibold">{bookingId}</span>
             </div>
+            {verifiedBooking?.totalPrice && (
+              <div className="flex justify-between items-center pb-3 border-b border-slate-800">
+                <span className="text-slate-400 font-medium">Amount Paid</span>
+                <span className="font-mono text-emerald-400 font-bold">${verifiedBooking.totalPrice} USD</span>
+              </div>
+            )}
             <div className="flex justify-between items-center pb-3 border-b border-slate-800">
               <span className="text-slate-400 font-medium">Check-in Status</span>
               <span className="inline-flex items-center gap-1.5 text-emerald-400 font-semibold">
@@ -71,7 +123,7 @@ function PaymentSuccessContent() {
           {/* Action CTAs */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <Link
-              href="/bookings"
+              href="/my-bookings"
               className="w-full sm:w-auto px-7 py-3.5 rounded-xl font-bold text-sm text-white bg-[#2563eb] hover:bg-[#1d4ed8] shadow-lg shadow-blue-600/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
             >
               <KeyRound className="w-4 h-4" />

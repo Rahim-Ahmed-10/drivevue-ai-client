@@ -323,6 +323,38 @@ export default function MyBookingsPage() {
             )}
           </div>
         )}
+
+        {!isAuthenticated && (
+          <div className="py-16 px-6 rounded-3xl bg-slate-900/40 border border-slate-800 text-center max-w-xl mx-auto space-y-5 backdrop-blur-xl">
+            <div className="w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 mx-auto">
+              <KeyRound className="w-8 h-8" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+                Sign In to View Your Reservations
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
+                Log in to access your digital keys, manage trip schedules, view billing statements, and track upcoming reservations.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+              <Link
+                href="/login?redirect=/my-bookings"
+                className="w-full sm:w-auto px-7 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2"
+              >
+                <KeyRound className="w-4 h-4" />
+                <span>Sign In Now</span>
+              </Link>
+              <Link
+                href="/cars"
+                className="w-full sm:w-auto px-7 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs transition-colors flex items-center justify-center gap-2"
+              >
+                <CarIcon className="w-4 h-4" />
+                <span>Browse Fleet</span>
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
 
       <AnimatePresence>

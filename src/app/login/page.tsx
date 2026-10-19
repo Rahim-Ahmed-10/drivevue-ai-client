@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import AuthSlider from "@/components/auth/AuthSlider";
 
 export const metadata: Metadata = {
@@ -9,7 +10,9 @@ export const metadata: Metadata = {
 export default function LoginPage() {
   return (
     <div className="relative pt-24 pb-16 min-h-screen flex items-center justify-center">
-      <AuthSlider initialMode="login" />
+      <Suspense fallback={<div className="min-h-[500px]" />}>
+        <AuthSlider initialMode="login" />
+      </Suspense>
     </div>
   );
 }

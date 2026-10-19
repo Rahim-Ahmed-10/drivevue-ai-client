@@ -132,6 +132,14 @@ function CarDetailsContent() {
     setCar(initialCar);
     setActiveImageIndex(0);
 
+    // Only query backend if carId looks like a valid 24-character hexadecimal MongoDB ObjectId
+    const isMongoId = /^[0-9a-fA-F]{24}$/.test(String(carId));
+    if (!isMongoId) {
+      return () => {
+        active = false;
+      };
+    }
+
     api
       .get(`/cars/${carId}`)
       .then((response) => {
