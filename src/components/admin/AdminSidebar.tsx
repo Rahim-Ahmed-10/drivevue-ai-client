@@ -141,7 +141,7 @@ export default function AdminSidebar({
             onClick={closeMobile}
             className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 transition-all group ${isCollapsed ? "justify-center" : ""
               }`}
-            title="Back to Main Site"
+            title="Back to Home"
           >
             <ArrowLeft className="w-3.5 h-3.5 text-blue-400 group-hover:-translate-x-0.5 transition-transform" />
             {!isCollapsed && <span>Back to Main Site</span>}
@@ -160,8 +160,8 @@ export default function AdminSidebar({
                 href={item.href}
                 onClick={closeMobile}
                 className={`relative flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 group ${isActive
-                    ? "bg-gradient-to-r from-blue-600/30 to-cyan-600/20 text-white border border-cyan-400/40 shadow-md shadow-blue-500/10"
-                    : "text-slate-400 hover:text-slate-100 hover:bg-white/5 border border-transparent"
+                  ? "bg-gradient-to-r from-blue-600/30 to-cyan-600/20 text-white border border-cyan-400/40 shadow-md shadow-blue-500/10"
+                  : "text-slate-400 hover:text-slate-100 hover:bg-white/5 border border-transparent"
                   } ${isCollapsed ? "justify-center" : ""}`}
                 title={item.name}
               >

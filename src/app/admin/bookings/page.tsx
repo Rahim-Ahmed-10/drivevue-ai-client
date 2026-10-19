@@ -290,8 +290,8 @@ export default function AdminBookingsPage() {
                   key={st}
                   onClick={() => setStatusFilter(st)}
                   className={`px-3 py-1.5 rounded-lg font-semibold transition-all ${statusFilter === st
-                      ? "bg-blue-600 text-white shadow-sm"
-                      : "text-slate-400 hover:text-white"
+                    ? "bg-blue-600 text-white shadow-sm"
+                    : "text-slate-400 hover:text-white"
                     }`}
                 >
                   {st === "ALL" ? "All Bookings" : st}
@@ -350,9 +350,9 @@ export default function AdminBookingsPage() {
                         </td>
                         <td className="py-4 px-6">
                           <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${b.status === "CONFIRMED" ? "bg-blue-500/10 text-cyan-300 border-blue-500/30" :
-                              b.status === "PENDING" ? "bg-amber-500/10 text-amber-300 border-amber-500/30" :
-                                b.status === "COMPLETED" ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/30" :
-                                  "bg-rose-500/10 text-rose-300 border-rose-500/30"
+                            b.status === "PENDING" ? "bg-amber-500/10 text-amber-300 border-amber-500/30" :
+                              b.status === "COMPLETED" ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/30" :
+                                "bg-rose-500/10 text-rose-300 border-rose-500/30"
                             }`}>
                             {b.status}
                           </span>

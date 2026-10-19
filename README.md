@@ -1,10 +1,88 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+🚗 DriveVue AI - Smart Driving & Vehicle Analytics Platform
 
-## Getting Started
+DriveVue AI is a modern, performance-oriented web application designed to support vehicle analytics and intelligent driving insights. Both the client-side and server-side of this project are built using a modern and scalable tech stack.
 
-First, run the development server:
+🔗 Quick Links
 
-```bash
+🌐 Live Website: drivevue-ai-client.vercel.app
+
+💻 Client-side Repository: github.com/Rahim-Ahmed-10/drivevue-ai-client
+
+⚙️ Server-side Repository: github.com/Rahim-Ahmed-10/drivevue-ai-server
+
+🛠️ Tech Stack & Technologies Used
+
+Client Side (Frontend)
+
+Framework: Next.js (App Router & React)
+
+Styling: Tailwind CSS / CSS Modules
+
+Font Optimization: next/font (Geist Font Family)
+
+Deployment: Vercel
+
+Server Side (Backend)
+
+Runtime: Node.js
+
+Framework: Express.js
+
+Database: MongoDB
+
+Authentication & Security: JWT / NextAuth / CORS / Dotenv
+
+Deployment: Vercel / Render
+
+✨ Features & Capabilities
+
+🌟 Client-Side Features:
+
+AI-Powered Analytics: Monitor driving patterns and gain actionable vehicle data insights.
+
+Fast & Responsive UI: Enhanced user experience with high responsiveness using Next.js Server-Side Rendering (SSR) and Static Site Generation (SSG).
+
+SEO Optimized: Built with optimized metadata and structure to improve search engine rankings.
+
+Font & Performance Optimization: Uses Vercel's Geist font for improved site speed and modern visual appearance.
+
+⚙️ Server-Side Features:
+
+Secure API Endpoints: Restful API interface protected against unauthorized requests.
+
+Efficient Data Processing: Fast database querying and payload handling.
+
+Authentication & Authorization: Secure user login flow with role-based access control.
+
+Scalable Architecture: Designed for easy integration of new features and modules in the future.
+
+🚀 Getting Started
+
+Follow these steps to run the client project locally:
+
+Prerequisites
+
+Node.js (v18.0.0 or higher)
+
+npm / yarn / pnpm / bun
+
+Installation & Execution
+
+Clone the Repository:
+
+git clone https://github.com/Rahim-Ahmed-10/drivevue-ai-client.git
+cd drivevue-ai-client
+
+
+Install Dependencies:
+
+npm install
+# or
+yarn install
+
+
+Run the Development Server:
+
 npm run dev
 # or
 yarn dev
@@ -12,25 +90,21 @@ yarn dev
 pnpm dev
 # or
 bun dev
-```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Open in Browser:
+Navigate to http://localhost:3000 to view the application.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+📜 Environment Variables
 
-## Learn More
+Create a .env.local file in your root folder and configure the required environment variables:
 
-To learn more about Next.js, take a look at the following resources:
+NEXT_PUBLIC_API_URL=https://your-server-api-url.com
+# Add additional secret keys here
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+👨‍💻 Author
 
-## Deploy on Vercel
+Rahim Ahmed - GitHub Profile
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+DriveVue AI — Empowering smart driving with AI insights.
