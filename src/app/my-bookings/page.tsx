@@ -182,8 +182,8 @@ export default function MyBookingsPage() {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${activeTab === tab.id
-                      ? "bg-[#2563eb] text-white shadow-md shadow-blue-600/30"
-                      : "bg-slate-900/50 text-slate-400 hover:text-white"
+                    ? "bg-[#2563eb] text-white shadow-md shadow-blue-600/30"
+                    : "bg-slate-900/50 text-slate-400 hover:text-white"
                     }`}
                 >
                   {tab.label}

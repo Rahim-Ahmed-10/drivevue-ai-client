@@ -1,10 +1,19 @@
+
 "use client";
 
-import React, { useState, useEffect, useMemo, useSyncExternalStore, Suspense } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+  Suspense,
+} from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
+  ArrowUpRight,
   Sparkles,
   ShieldCheck,
   CreditCard,
@@ -19,8 +28,15 @@ import {
   Loader2,
   AlertCircle,
   Clock,
-  Check
+  Check,
+  ChevronRight,
+  BadgeCheck,
+  CarFront,
+  CircleGauge,
+  Headphones,
+  Wifi,
 } from "lucide-react";
+
 import api from "@/lib/api";
 import { Car } from "@/types/car";
 import { MOCK_CARS } from "@/lib/mockCars";
@@ -31,178 +47,215 @@ function subscribeToAuth(callback: () => void) {
 }
 
 function getAuthSnapshot() {
-  if (typeof window === "undefined") return false;
-  return Boolean(localStorage.getItem("token") || localStorage.getItem("auth_token"));
+  return Boolean(
+    localStorage.getItem("token") ||
+    localStorage.getItem("auth_token")
+  );
 }
 
 function getAuthServerSnapshot() {
   return false;
 }
 
+function formatDate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function addDays(dateString: string, days: number) {
+  const date = new Date(`${dateString}T12:00:00`);
+  date.setDate(date.getDate() + days);
+  return formatDate(date);
+}
+
+function getDaysBetween(start: string, end: string) {
+  const startTime = new Date(`${start}T12:00:00`).getTime();
+  const endTime = new Date(`${end}T12:00:00`).getTime();
+
+  return Math.round((endTime - startTime) / 86400000);
+}
+
+const features = [
+  { icon: ShieldCheck, label: "Premium protection" },
+  { icon: Zap, label: "Smart driving experience" },
+  { icon: Wifi, label: "Connected technology" },
+  { icon: Headphones, label: "24/7 customer support" },
+  { icon: Sparkles, label: "Luxury interior" },
+  { icon: CheckCircle2, label: "Flexible reservations" },
+];
+
 function CarDetailsContent() {
   const router = useRouter();
   const params = useParams();
-  const carId = Array.isArray(params?.id) ? params.id[0] : params?.id || "mock-car-1";
 
-  // Initial car lookup from local mock dataset for zero-latency instant render
-  const initialCar = useMemo(() => {
-    return MOCK_CARS.find((c) => c._id === carId || c.id === carId) || MOCK_CARS[0];
-  }, [carId]);
+  const carId = Array.isArray(params?.id)
+    ? params.id[0]
+    : params?.id || "mock-car-1";
+
+  const initialCar = useMemo(
+    () =>
+      MOCK_CARS.find(
+        (item) => item._id === carId || item.id === carId
+      ) || MOCK_CARS[0],
+    [carId]
+  );
 
   const [car, setCar] = useState<Car>(initialCar);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
-
-  // Default dates: tomorrow and 3 days later
-  const todayStr = "2026-10-18";
-  const defaultPickupStr = "2026-10-19";
-  const defaultReturnStr = "2026-10-22";
-
-  const [pickupDate, setPickupDate] = useState(defaultPickupStr);
-  const [returnDate, setReturnDate] = useState(defaultReturnStr);
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
 
-  // Check if authenticated using React 19 concurrent-safe store
-  const isAuthenticated = useSyncExternalStore(subscribeToAuth, getAuthSnapshot, getAuthServerSnapshot);
+  const [pickupDate, setPickupDate] = useState(() => {
+    const today = formatDate(new Date());
+    return addDays(today, 1);
+  });
 
-  // Attempt to fetch fresh car data from backend API
+  const [returnDate, setReturnDate] = useState(() => {
+    const tomorrow = addDays(formatDate(new Date()), 1);
+    return addDays(tomorrow, 3);
+  });
+
+  const isAuthenticated = useSyncExternalStore(
+    subscribeToAuth,
+    getAuthSnapshot,
+    getAuthServerSnapshot
+  );
+
+  const today = formatDate(new Date());
+
   useEffect(() => {
-    let isMounted = true;
+    let active = true;
+
+    setCar(initialCar);
+    setActiveImageIndex(0);
+
     api
       .get(`/cars/${carId}`)
-      .then((res) => {
-        if (!isMounted) return;
-        if (res.data && res.data.data) {
-          setCar(res.data.data);
+      .then((response) => {
+        if (active && response.data?.data) {
+          setCar(response.data.data);
         }
       })
       .catch(() => {
-        // Fallback to initialCar gracefully without blocking UI
+        // Keep the mock vehicle as a fallback.
       });
 
     return () => {
-      isMounted = false;
+      active = false;
     };
-  }, [carId]);
+  }, [carId, initialCar]);
 
-  // Gallery images with high-resolution complimentary views
   const galleryImages = useMemo(() => {
-    const list = [...(car.images || [])];
-    if (list.length === 0) {
-      list.push("https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=1200&q=80");
+    const images = (car.images || []).filter(
+      (image): image is string =>
+        typeof image === "string" && image.length > 0
+    );
+
+    if (images.length === 0) {
+      return [
+        "https://images.unsplash.com/photo-1617788138017-80ad40651399?auto=format&fit=crop&w=1800&q=85",
+      ];
     }
-    if (list.length === 1) {
-      list.push(
-        "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80",
-        "https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=1200&q=80",
-        "https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?auto=format&fit=crop&w=1200&q=80"
-      );
-    }
-    return list;
+
+    return images;
   }, [car.images]);
 
-  // Derive date validation error directly during render without effect
-  const dateError = useMemo(() => {
-    const start = new Date(pickupDate).getTime();
-    const end = new Date(returnDate).getTime();
-    if (isNaN(start) || isNaN(end) || end <= start) {
-      return "Return date must be at least 1 day after pick-up date.";
-    }
-    return "";
-  }, [pickupDate, returnDate]);
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [car]);
 
-  // Validate dates and calculate rental duration in days
-  const rentalDays = useMemo(() => {
-    const start = new Date(pickupDate).getTime();
-    const end = new Date(returnDate).getTime();
+  const rentalDays = getDaysBetween(pickupDate, returnDate);
 
-    if (isNaN(start) || isNaN(end)) {
-      return 1;
-    }
+  const dateError =
+    !pickupDate ||
+      !returnDate ||
+      pickupDate < today ||
+      returnDate <= pickupDate
+      ? "Choose a valid pick-up and return date."
+      : "";
 
-    if (end <= start) {
-      return 0;
-    }
-
-    const diff = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-    return diff > 0 ? diff : 1;
-  }, [pickupDate, returnDate]);
-
-  // Pricing calculations
-  const subtotal = rentalDays * car.pricePerDay;
-  const tax = Math.round(subtotal * 0.08); // 8% tax & municipal fee
+  const safeDays = rentalDays > 0 ? rentalDays : 0;
+  const subtotal = safeDays * car.pricePerDay;
+  const tax = Math.round(subtotal * 0.08);
   const totalAmount = subtotal + tax;
 
   const isElectric =
     car.fuelType?.toLowerCase() === "electric" ||
     car.category?.toLowerCase() === "electric";
 
-  // Features list
-  const carFeatures = [
-    "AI Predictive Cruise Control",
-    "Panoramic UV Glass Sunroof",
-    "High-Fidelity 18-Speaker Audio",
-    "Smart Keyless Mobile Unlock",
-    "Wireless Apple CarPlay & Android Auto",
-    "360° Surround HD Vision Cameras",
-    "Heated & Ventilated Front Seats",
-    "Supercharging / Fuel Refill Credit",
-  ];
-
-  // 🚀 Direct Stripe Checkout Action Handler
-  const handleProceedToCheckout = async () => {
+  const handleCheckout = async () => {
     setCheckoutError("");
 
-    if (dateError || rentalDays <= 0) {
-      setCheckoutError("Please select a valid return date after your pick-up date.");
+    if (dateError || safeDays <= 0) {
+      setCheckoutError(
+        "Please select a valid pick-up and return date."
+      );
       return;
     }
 
-    // Resolve MongoDB vehicle ObjectId (checking car._id, car.id, or route param carId)
+    if (!car.isAvailable) {
+      setCheckoutError(
+        "This vehicle is currently unavailable. Please choose another car."
+      );
+      return;
+    }
+
     const rawCarId = car._id || car.id || carId;
-    const isMongoId = rawCarId && /^[0-9a-fA-F]{24}$/.test(String(rawCarId));
+    const isMongoId =
+      /^[0-9a-fA-F]{24}$/.test(String(rawCarId));
 
     if (!isMongoId) {
-      setCheckoutError("This demo vehicle is not linked to the live database. Please select an active vehicle from the fleet.");
+      setCheckoutError(
+        "This demo vehicle is not connected to the live fleet database."
+      );
       return;
     }
 
     const targetCarId = String(rawCarId);
 
-    // 1. Check authentication
     if (!isAuthenticated) {
-      router.push(`/login?redirect=/cars/${targetCarId}`);
+      router.push(
+        `/login?redirect=${encodeURIComponent(`/cars/${targetCarId}`)}`
+      );
       return;
     }
 
     setIsCheckingOut(true);
 
     try {
-      // 2. Direct request to Stripe Checkout Session (Backend handles booking lifecycle)
-      const sessionRes = await api.post("/api/payments/create-checkout-session", {
-        carId: targetCarId,
-        car: targetCarId,
-        startDate: pickupDate,
-        endDate: returnDate,
-        totalAmount: totalAmount,
-      });
+      const response = await api.post(
+        "/api/payments/create-checkout-session",
+        {
+          carId: targetCarId,
+          car: targetCarId,
+          startDate: pickupDate,
+          endDate: returnDate,
+          totalAmount,
+        }
+      );
 
-      // Extract Stripe checkout URL from response
       const checkoutUrl =
-        sessionRes.data?.url ||
-        sessionRes.data?.data?.url ||
-        sessionRes.data?.sessionUrl ||
-        sessionRes.data?.data?.sessionUrl;
+        response.data?.url ||
+        response.data?.data?.url ||
+        response.data?.sessionUrl ||
+        response.data?.data?.sessionUrl;
 
-      if (checkoutUrl) {
-        window.location.href = checkoutUrl;
+      if (
+        typeof checkoutUrl === "string" &&
+        /^https:\/\/[^/]*stripe\.com\//i.test(checkoutUrl)
+      ) {
+        window.location.assign(checkoutUrl);
         return;
       }
 
-      setCheckoutError("Unable to retrieve Stripe checkout URL from server response.");
-    } catch (err: unknown) {
-      console.error("[Stripe Flow Error]:", err);
-      const apiErr = err as {
+      setCheckoutError(
+        "Unable to retrieve a valid Stripe checkout URL."
+      );
+    } catch (error: unknown) {
+      const apiError = error as {
         response?: {
           status?: number;
           data?: { message?: string };
@@ -210,266 +263,562 @@ function CarDetailsContent() {
         message?: string;
       };
 
-      if (apiErr?.response?.status === 401) {
-        setCheckoutError("Your login session has expired. Please sign in again.");
-        router.push(`/login?redirect=/cars/${targetCarId}`);
+      if (apiError.response?.status === 401) {
+        router.push(
+          `/login?redirect=${encodeURIComponent(`/cars/${targetCarId}`)}`
+        );
         return;
       }
 
-      if (apiErr?.response?.status === 404) {
-        setCheckoutError(apiErr?.response?.data?.message || "Vehicle not found in the fleet database.");
-        return;
-      }
-
-      if (apiErr?.response?.status === 400) {
-        setCheckoutError(apiErr?.response?.data?.message || "Invalid reservation parameters. Please check your dates.");
-        return;
-      }
-
-      const errorMsg =
-        apiErr?.response?.data?.message ||
-        apiErr?.message ||
-        "Payment connection error. Please try again or contact support.";
-      setCheckoutError(errorMsg);
+      setCheckoutError(
+        apiError.response?.data?.message ||
+        apiError.message ||
+        "Payment connection failed. Please try again."
+      );
     } finally {
       setIsCheckingOut(false);
     }
   };
 
   return (
-    <div className="relative min-h-screen bg-[#090d16] text-slate-100 pt-28 pb-20">
-      {/* Background ambient lighting */}
-      <div className="absolute top-24 left-1/4 w-[700px] h-[450px] bg-blue-600/10 blur-[160px] pointer-events-none rounded-full" />
-      <div className="absolute top-96 right-10 w-[500px] h-[400px] bg-cyan-500/10 blur-[150px] pointer-events-none rounded-full" />
+    <main className="relative min-h-screen overflow-hidden bg-[#070A12] pb-20 pt-24 text-white selection:bg-blue-500/30 sm:pt-28">
+      {/* Ambient lighting */}
+      <div className="pointer-events-none absolute -left-40 top-40 h-[500px] w-[500px] rounded-full bg-blue-600/[0.12] blur-[150px]" />
+      <div className="pointer-events-none absolute -right-40 top-[650px] h-[500px] w-[500px] rounded-full bg-cyan-500/[0.08] blur-[150px]" />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Navigation Breadcrumb */}
-        <div className="mb-6 flex items-center justify-between">
+      <div className="relative mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-10">
+        {/* Navigation */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8 flex flex-wrap items-center justify-between gap-4"
+        >
           <Link
             href="/cars"
-            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-blue-400 transition-colors"
+            className="group inline-flex items-center gap-2.5 text-sm text-slate-400 transition hover:text-white"
           >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back to All Vehicles</span>
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.03] transition group-hover:border-blue-400/40 group-hover:bg-blue-500/10">
+              <ArrowLeft size={16} />
+            </span>
+            Back to fleet
           </Link>
 
-          <span className="text-xs text-slate-500">
-            Fleet Identifier: <span className="font-mono text-slate-400">{car._id || car.id}</span>
-          </span>
-        </div>
+          <div className="flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-[11px] font-medium tracking-wide text-slate-400">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+            DRIVEVUE AI
+            <span className="text-slate-600">/</span>
+            VEHICLE DETAILS
+          </div>
+        </motion.div>
 
-        {/* VEHICLE SHOWCASE & BOOKING SPLIT LAYOUT */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-          {/* Left Column: Visual Gallery & Specs */}
-          <div className="lg:col-span-2 space-y-8">
-            <div className="relative rounded-3xl overflow-hidden bg-slate-900/60 border border-slate-800 shadow-2xl">
-              <div className="relative h-80 sm:h-[440px] w-full overflow-hidden bg-slate-950">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={galleryImages[activeImageIndex] || galleryImages[0]}
-                  alt={car.name}
-                  className="w-full h-full object-cover select-none transition-all duration-300"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-black/30 pointer-events-none" />
-
-                <div className="absolute top-4 left-4 flex items-center gap-2">
-                  <span className="px-3 py-1 rounded-xl text-xs font-bold uppercase tracking-wider bg-slate-950/85 border border-slate-700 text-blue-300 backdrop-blur-md">
-                    {car.category || "Luxury"}
-                  </span>
-                  {car.isAvailable ? (
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 backdrop-blur-md">
-                      <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      <span>Ready for Instant Unlock</span>
-                    </span>
-                  ) : (
-                    <span className="px-3 py-1 rounded-xl text-xs font-semibold bg-slate-900/80 border border-slate-700 text-slate-400 backdrop-blur-md">
-                      Currently Reserved
-                    </span>
-                  )}
-                </div>
-
-                <div className="absolute bottom-4 right-4 flex items-center gap-1.5 px-3 py-1 rounded-xl bg-black/70 backdrop-blur-md border border-amber-400/20 text-amber-300 text-xs">
-                  <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                  <span className="font-bold text-sm">4.98</span>
-                  <span className="text-slate-400">(142 verified trips)</span>
-                </div>
-              </div>
-
-              {/* Thumbnail Strip */}
-              <div className="p-3 bg-slate-950/70 border-t border-slate-800 flex items-center gap-3 overflow-x-auto">
-                {galleryImages.map((img, idx) => (
-                  <button
-                    key={`thumb-${idx}`}
-                    type="button"
-                    onClick={() => setActiveImageIndex(idx)}
-                    className={`relative w-20 h-14 rounded-xl overflow-hidden shrink-0 border-2 transition-all ${activeImageIndex === idx
-                        ? "border-blue-500 shadow-md shadow-blue-500/30 scale-105"
-                        : "border-slate-800 opacity-60 hover:opacity-100"
-                      }`}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={img} alt={`View ${idx + 1}`} className="w-full h-full object-cover" />
-                  </button>
-                ))}
-              </div>
+        {/* Hero heading */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55 }}
+          className="mb-8 flex flex-col justify-between gap-5 md:flex-row md:items-end"
+        >
+          <div>
+            <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.25em] text-blue-400">
+              <Sparkles size={14} />
+              The premium collection
             </div>
 
-            {/* Vehicle Title & Specs */}
-            <div className="rounded-3xl bg-slate-900/60 border border-slate-800 p-6 sm:p-8 space-y-6">
-              <div>
-                <span className="text-xs font-bold uppercase tracking-widest text-blue-400">
-                  {car.brand} • {car.year} Fleet Model
+            <h1 className="max-w-3xl text-3xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl">
+              Your next journey,
+              <span className="block bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-500 bg-clip-text pb-1 text-transparent">
+                redefined.
+              </span>
+            </h1>
+
+            <p className="mt-4 max-w-xl text-sm leading-7 text-slate-400 sm:text-base">
+              Discover exceptional comfort, intelligent technology,
+              and a driving experience designed around you.
+            </p>
+          </div>
+
+          <div className="flex w-fit items-center gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.03] p-3.5">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-400/10 text-amber-400">
+              <Star size={20} fill="currentColor" />
+            </div>
+            <div>
+              <p className="text-lg font-bold">4.98 / 5</p>
+              <p className="text-xs text-slate-500">
+                Example rating · 142 trips
+              </p>
+            </div>
+          </div>
+        </motion.div>
+
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_390px] xl:grid-cols-[minmax(0,1fr)_420px] xl:gap-8">
+          {/* LEFT: Gallery and details */}
+          <div className="min-w-0 space-y-6">
+            <motion.section
+              initial={{ opacity: 0, scale: 0.985 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.55 }}
+              className="overflow-hidden rounded-[28px] border border-white/[0.09] bg-[#0C111D] shadow-2xl shadow-black/30"
+            >
+              <div className="group relative h-[280px] overflow-hidden bg-[#0A0E17] sm:h-[430px] xl:h-[490px]">
+                <AnimatePresence mode="wait">
+                  <motion.img
+                    key={galleryImages[activeImageIndex]}
+                    src={galleryImages[activeImageIndex] || galleryImages[0]}
+                    alt={car.name || `${car.brand} ${car.model}`}
+                    initial={{ opacity: 0, scale: 1.035 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.35 }}
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                </AnimatePresence>
+
+                <div className="absolute inset-0 bg-gradient-to-t from-[#070A12] via-transparent to-black/35" />
+                <div className="absolute inset-0 bg-gradient-to-r from-black/30 via-transparent to-transparent" />
+
+                <div className="absolute left-4 top-4 flex flex-wrap items-center gap-2 sm:left-6 sm:top-6">
+                  <span className="rounded-full border border-white/15 bg-black/45 px-3.5 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-white backdrop-blur-xl">
+                    {car.category || "Luxury"}
+                  </span>
+
+                  <span
+                    className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-[10px] font-semibold backdrop-blur-xl ${car.isAvailable
+                        ? "border-emerald-400/25 bg-emerald-950/60 text-emerald-300"
+                        : "border-amber-400/25 bg-amber-950/60 text-amber-300"
+                      }`}
+                  >
+                    <span
+                      className={`h-1.5 w-1.5 rounded-full ${car.isAvailable
+                          ? "bg-emerald-400"
+                          : "bg-amber-400"
+                        }`}
+                    />
+                    {car.isAvailable ? "Available to book" : "Reserved"}
+                  </span>
+                </div>
+
+                <div className="absolute bottom-5 left-5 right-5 flex items-end justify-between gap-3 sm:bottom-7 sm:left-7 sm:right-7">
+                  <div>
+                    <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.22em] text-blue-300">
+                      {car.brand} · {car.year}
+                    </p>
+                    <h2 className="text-2xl font-bold tracking-tight sm:text-4xl">
+                      {car.name || `${car.brand} ${car.model}`}
+                    </h2>
+                    <p className="mt-2 text-xs text-slate-300 sm:text-sm">
+                      Designed for the extraordinary.
+                    </p>
+                  </div>
+
+                  <div className="hidden items-center gap-1.5 rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-xs text-slate-200 backdrop-blur-xl sm:flex">
+                    <ShieldCheck size={15} className="text-emerald-400" />
+                    Premium fleet
+                  </div>
+                </div>
+              </div>
+
+              {/* Gallery thumbnails */}
+              <div className="flex items-center gap-3 overflow-x-auto border-t border-white/[0.06] bg-[#0A0E17] p-4 sm:p-5">
+                {galleryImages.map((image, index) => (
+                  <button
+                    key={`${image}-${index}`}
+                    type="button"
+                    aria-label={`Show vehicle image ${index + 1}`}
+                    aria-pressed={activeImageIndex === index}
+                    onClick={() => setActiveImageIndex(index)}
+                    className={`relative h-[58px] w-[82px] shrink-0 overflow-hidden rounded-xl border-2 transition duration-200 sm:h-[70px] sm:w-[105px] ${activeImageIndex === index
+                        ? "border-blue-400 shadow-lg shadow-blue-500/20"
+                        : "border-white/[0.06] opacity-55 hover:border-white/30 hover:opacity-100"
+                      }`}
+                  >
+                    <img
+                      src={image}
+                      alt={`Vehicle view ${index + 1}`}
+                      className="h-full w-full object-cover"
+                    />
+                    {activeImageIndex === index && (
+                      <span className="absolute inset-0 border border-white/20" />
+                    )}
+                  </button>
+                ))}
+
+                <span className="ml-auto shrink-0 text-[10px] text-slate-500">
+                  {String(activeImageIndex + 1).padStart(2, "0")} /{" "}
+                  {String(galleryImages.length).padStart(2, "0")}
                 </span>
-                <h1 className="text-2xl sm:text-4xl font-extrabold text-white mt-1">
-                  {car.name || `${car.brand} ${car.model}`}
-                </h1>
-                <p className="text-sm text-slate-400 mt-2 leading-relaxed">
-                  Engineered for seamless acceleration, whisper-quiet cabin aerodynamics, and state-of-the-art telemetry.
-                </p>
               </div>
+            </motion.section>
 
-              {/* Specs Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-slate-800">
-                <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800/80 text-center">
-                  <Users className="w-5 h-5 text-blue-400 mx-auto mb-1.5" />
-                  <span className="text-[11px] text-slate-400 uppercase tracking-wider block">Seats</span>
-                  <span className="text-sm font-bold text-white">{car.seats || 5} Passengers</span>
+            {/* Specifications */}
+            <motion.section
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.12 }}
+              className="rounded-[28px] border border-white/[0.08] bg-gradient-to-br from-[#111827] to-[#0B101B] p-5 sm:p-7"
+            >
+              <div className="mb-6 flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-blue-400">
+                    Vehicle overview
+                  </p>
+                  <h3 className="mt-2 text-xl font-semibold">
+                    Built around your journey
+                  </h3>
                 </div>
-                <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800/80 text-center">
-                  {isElectric ? <Zap className="w-5 h-5 text-cyan-400 mx-auto mb-1.5" /> : <Fuel className="w-5 h-5 text-indigo-400 mx-auto mb-1.5" />}
-                  <span className="text-[11px] text-slate-400 uppercase tracking-wider block">Powertrain</span>
-                  <span className="text-sm font-bold text-white">{car.fuelType || "Electric"}</span>
-                </div>
-                <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800/80 text-center">
-                  <Gauge className="w-5 h-5 text-purple-400 mx-auto mb-1.5" />
-                  <span className="text-[11px] text-slate-400 uppercase tracking-wider block">Transmission</span>
-                  <span className="text-sm font-bold text-white">{car.transmission || "Automatic"}</span>
-                </div>
-                <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800/80 text-center">
-                  <Sparkles className="w-5 h-5 text-emerald-400 mx-auto mb-1.5" />
-                  <span className="text-[11px] text-slate-400 uppercase tracking-wider block">AI Match</span>
-                  <span className="text-sm font-bold text-white">99.8% Score</span>
+
+                <div className="hidden h-12 w-12 items-center justify-center rounded-2xl border border-blue-400/20 bg-blue-500/10 text-blue-400 sm:flex">
+                  <CarFront size={24} />
                 </div>
               </div>
 
-              {/* Features & Amenities */}
-              <div className="pt-4 border-t border-slate-800 space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">Vehicle Highlights & Amenities:</h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs text-slate-300">
-                  {carFeatures.map((feat, fIdx) => (
-                    <div key={`feat-${fIdx}`} className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-cyan-400 shrink-0" />
-                      <span>{feat}</span>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {[
+                  {
+                    icon: Users,
+                    label: "Passengers",
+                    value: `${car.seats || 5} seats`,
+                  },
+                  {
+                    icon: isElectric ? Zap : Fuel,
+                    label: "Fuel type",
+                    value: car.fuelType || "Electric",
+                  },
+                  {
+                    icon: Gauge,
+                    label: "Transmission",
+                    value: car.transmission || "Automatic",
+                  },
+                  {
+                    icon: CircleGauge,
+                    label: "Model year",
+                    value: String(car.year || "N/A"),
+                  },
+                ].map((item) => (
+                  <div
+                    key={item.label}
+                    className="group rounded-2xl border border-white/[0.06] bg-white/[0.025] p-4 transition duration-300 hover:border-blue-400/25 hover:bg-blue-500/[0.05]"
+                  >
+                    <item.icon
+                      size={20}
+                      className="mb-4 text-blue-400 transition group-hover:scale-110"
+                    />
+                    <p className="text-[10px] uppercase tracking-wider text-slate-500">
+                      {item.label}
+                    </p>
+                    <p className="mt-1 break-words text-sm font-semibold text-slate-100">
+                      {item.value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 border-t border-white/[0.07] pt-6">
+                <h4 className="mb-4 text-sm font-semibold">
+                  Experience the difference
+                </h4>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {features.map((feature) => (
+                    <div
+                      key={feature.label}
+                      className="flex items-center gap-3 text-sm text-slate-400"
+                    >
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-emerald-400/15 bg-emerald-400/[0.06]">
+                        <feature.icon size={15} className="text-emerald-400" />
+                      </span>
+                      {feature.label}
                     </div>
                   ))}
                 </div>
               </div>
-            </div>
+            </motion.section>
+
+            {/* Trust section */}
+            <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {[
+                {
+                  icon: ShieldCheck,
+                  title: "Secure booking",
+                  description: "Protected checkout experience",
+                },
+                {
+                  icon: CreditCard,
+                  title: "Clear pricing",
+                  description: "Review your estimated total",
+                },
+                {
+                  icon: Headphones,
+                  title: "Here to help",
+                  description: "Support for your journey",
+                },
+              ].map((item) => (
+                <div
+                  key={item.title}
+                  className="flex items-start gap-3 rounded-2xl border border-white/[0.07] bg-white/[0.025] p-4"
+                >
+                  <item.icon
+                    size={19}
+                    className="mt-0.5 shrink-0 text-blue-400"
+                  />
+                  <div>
+                    <p className="text-sm font-semibold">{item.title}</p>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">
+                      {item.description}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </section>
           </div>
 
-          {/* Right Column: Sticky Booking Widget & Stripe Checkout */}
-          <div className="lg:col-span-1">
-            <div className="sticky top-28 rounded-3xl bg-slate-900/85 border border-slate-800/90 p-6 sm:p-7 shadow-2xl backdrop-blur-xl space-y-6">
-              <div className="pb-4 border-b border-slate-800 flex items-baseline justify-between">
+          {/* RIGHT: Sticky booking widget */}
+          <aside className="min-w-0 lg:sticky lg:top-28">
+            <motion.section
+              initial={{ opacity: 0, x: 18 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="overflow-hidden rounded-[28px] border border-white/[0.1] bg-[#0D1320]/95 shadow-2xl shadow-black/30 backdrop-blur-2xl"
+            >
+              <div className="relative overflow-hidden border-b border-white/[0.07] p-6 sm:p-7">
+                <div className="pointer-events-none absolute -right-12 -top-16 h-40 w-40 rounded-full bg-blue-500/15 blur-[65px]" />
+
+                <div className="relative flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+                      Your private getaway
+                    </p>
+
+                    <div className="mt-3 flex items-baseline gap-2">
+                      <span className="text-4xl font-bold tracking-tight">
+                        ${car.pricePerDay}
+                      </span>
+                      <span className="text-sm text-slate-500">/ day</span>
+                    </div>
+
+                    <p className="mt-2 text-xs text-slate-500">
+                      Choose your dates to calculate the price.
+                    </p>
+                  </div>
+
+                  <span className="flex items-center gap-1.5 rounded-full border border-emerald-400/20 bg-emerald-400/[0.07] px-2.5 py-1.5 text-[10px] font-semibold text-emerald-300">
+                    <BadgeCheck size={13} />
+                    {car.isAvailable ? "Available" : "Reserved"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-6 p-5 sm:p-7">
+                {/* Dates */}
                 <div>
-                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Daily Rate</span>
-                  <div className="flex items-baseline gap-1 mt-0.5">
-                    <span className="text-3xl font-black text-white">${car.pricePerDay}</span>
-                    <span className="text-xs text-slate-400"> / day</span>
+                  <div className="mb-4 flex items-center gap-2">
+                    <Calendar size={17} className="text-blue-400" />
+                    <h3 className="text-sm font-semibold">Plan your trip</h3>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="rounded-2xl border border-white/[0.09] bg-[#080D17] p-4 transition focus-within:border-blue-400/50">
+                      <label
+                        htmlFor="pickup-date"
+                        className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500"
+                      >
+                        Pick-up date
+                      </label>
+
+                      <input
+                        id="pickup-date"
+                        type="date"
+                        min={today}
+                        value={pickupDate}
+                        onChange={(event) => {
+                          const nextPickup = event.target.value;
+                          setPickupDate(nextPickup);
+
+                          if (returnDate <= nextPickup) {
+                            setReturnDate(addDays(nextPickup, 1));
+                          }
+
+                          setCheckoutError("");
+                        }}
+                        className="w-full bg-transparent text-sm font-medium text-white outline-none [color-scheme:dark]"
+                      />
+                    </div>
+
+                    <div className="rounded-2xl border border-white/[0.09] bg-[#080D17] p-4 transition focus-within:border-blue-400/50">
+                      <label
+                        htmlFor="return-date"
+                        className="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500"
+                      >
+                        Return date
+                      </label>
+
+                      <input
+                        id="return-date"
+                        type="date"
+                        min={addDays(pickupDate, 1)}
+                        value={returnDate}
+                        onChange={(event) => {
+                          setReturnDate(event.target.value);
+                          setCheckoutError("");
+                        }}
+                        className="w-full bg-transparent text-sm font-medium text-white outline-none [color-scheme:dark]"
+                      />
+                    </div>
+                  </div>
+
+                  {dateError && (
+                    <p className="mt-3 flex items-start gap-2 text-xs leading-5 text-red-300">
+                      <AlertCircle size={15} className="mt-0.5 shrink-0" />
+                      {dateError}
+                    </p>
+                  )}
+                </div>
+
+                {/* Rental duration */}
+                <div className="flex items-center justify-between rounded-2xl border border-blue-400/15 bg-blue-500/[0.06] p-4">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400">
+                      <Clock size={19} />
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold">Your reservation</p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {safeDays} {safeDays === 1 ? "day" : "days"} selected
+                      </p>
+                    </div>
+                  </div>
+
+                  <ChevronRight size={17} className="text-slate-500" />
+                </div>
+
+                {/* Price summary */}
+                <div>
+                  <h3 className="mb-4 text-sm font-semibold">
+                    Price breakdown
+                  </h3>
+
+                  <div className="space-y-3 text-xs">
+                    <div className="flex justify-between gap-3 text-slate-400">
+                      <span>
+                        ${car.pricePerDay} × {safeDays}{" "}
+                        {safeDays === 1 ? "day" : "days"}
+                      </span>
+                      <span className="font-medium text-slate-200">
+                        ${subtotal.toLocaleString("en-US")}
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between gap-3 text-slate-400">
+                      <span>Estimated tax (8%)</span>
+                      <span className="font-medium text-slate-200">
+                        ${tax.toLocaleString("en-US")}
+                      </span>
+                    </div>
+
+                    <div className="border-t border-dashed border-white/[0.12] pt-4">
+                      <div className="flex items-end justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-white">
+                            Estimated total
+                          </p>
+                          <p className="mt-1 text-[10px] text-slate-500">
+                            Final amount subject to server validation
+                          </p>
+                        </div>
+
+                        <span className="text-3xl font-bold tracking-tight text-blue-400">
+                          ${totalAmount.toLocaleString("en-US")}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-full">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>Instant Hold</span>
-                </div>
-              </div>
 
-              {/* Date Selection */}
-              <div className="space-y-3.5">
-                <label className="text-xs font-semibold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-blue-400" />
-                  Trip Dates
-                </label>
-                <div className="grid grid-cols-1 gap-2.5">
-                  <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
-                    <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Pick-up Date</label>
-                    <input
-                      type="date"
-                      min={todayStr}
-                      value={pickupDate}
-                      onChange={(e) => setPickupDate(e.target.value)}
-                      className="w-full bg-transparent text-xs text-white focus:outline-none [color-scheme:dark]"
-                    />
-                  </div>
-                  <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800">
-                    <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Return Date</label>
-                    <input
-                      type="date"
-                      min={pickupDate}
-                      value={returnDate}
-                      onChange={(e) => setReturnDate(e.target.value)}
-                      className="w-full bg-transparent text-xs text-white focus:outline-none [color-scheme:dark]"
-                    />
-                  </div>
-                </div>
+                {/* Errors */}
+                <AnimatePresence>
+                  {checkoutError && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden"
+                    >
+                      <div
+                        role="alert"
+                        className="flex gap-2 rounded-xl border border-red-400/20 bg-red-500/[0.07] p-3 text-xs leading-5 text-red-300"
+                      >
+                        <AlertCircle
+                          size={16}
+                          className="mt-0.5 shrink-0"
+                        />
+                        {checkoutError}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
-                {dateError && (
-                  <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center gap-2 text-xs text-red-300">
-                    <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-                    <span>{dateError}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Price Calculation */}
-              <div className="space-y-2.5 py-4 border-y border-slate-800 text-xs text-slate-300">
-                <div className="flex justify-between">
-                  <span>${car.pricePerDay} × {rentalDays} {rentalDays === 1 ? "day" : "days"}</span>
-                  <span className="font-semibold text-white">${subtotal}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>State Tax & Registration (8%)</span>
-                  <span className="font-semibold text-slate-300">${tax}</span>
-                </div>
-                <div className="pt-2 border-t border-slate-800 flex justify-between items-baseline font-bold text-sm text-white">
-                  <span>Total Due</span>
-                  <span className="text-2xl text-blue-400">${totalAmount}</span>
-                </div>
-              </div>
-
-              {checkoutError && (
-                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center gap-2 text-xs text-red-300">
-                  <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
-                  <span>{checkoutError}</span>
-                </div>
-              )}
-
-              {/* Stripe Checkout CTA */}
-              <div className="space-y-3">
+                {/* Checkout */}
                 <button
                   type="button"
-                  disabled={isCheckingOut || Boolean(dateError) || rentalDays <= 0}
-                  onClick={handleProceedToCheckout}
-                  className="w-full py-4 rounded-2xl font-bold text-sm text-white bg-[#2563eb] hover:bg-[#1d4ed8] shadow-xl shadow-blue-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={
+                    isCheckingOut ||
+                    Boolean(dateError) ||
+                    safeDays <= 0 ||
+                    !car.isAvailable
+                  }
+                  onClick={handleCheckout}
+                  className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-blue-500 px-5 py-4 text-sm font-bold text-white shadow-lg shadow-blue-600/20 transition duration-300 hover:-translate-y-0.5 hover:from-blue-500 hover:to-cyan-500 hover:shadow-blue-500/30 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0"
                 >
-                  {isCheckingOut ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Connecting to Stripe...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Lock className="w-4 h-4" />
-                      <span>Proceed to Stripe Checkout</span>
-                    </>
-                  )}
+                  <span className="absolute inset-0 translate-x-[-120%] bg-gradient-to-r from-transparent via-white/15 to-transparent transition-transform duration-700 group-hover:translate-x-[120%]" />
+
+                  <span className="relative flex items-center gap-2">
+                    {isCheckingOut ? (
+                      <>
+                        <Loader2 size={17} className="animate-spin" />
+                        Connecting to Stripe...
+                      </>
+                    ) : (
+                      <>
+                        <Lock size={16} />
+                        Continue to secure checkout
+                        <ArrowUpRight
+                          size={16}
+                          className="transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                        />
+                      </>
+                    )}
+                  </span>
                 </button>
+
+                <div className="flex items-center justify-center gap-2 text-[10px] text-slate-500">
+                  <Lock size={12} />
+                  Secure payment powered by Stripe
+                </div>
+
+                <div className="flex items-start gap-3 border-t border-white/[0.07] pt-5">
+                  <ShieldCheck
+                    size={19}
+                    className="mt-0.5 shrink-0 text-emerald-400"
+                  />
+                  <div>
+                    <p className="text-xs font-semibold text-slate-200">
+                      A more confident way to travel
+                    </p>
+                    <p className="mt-1 text-[11px] leading-5 text-slate-500">
+                      Review your reservation details before completing
+                      payment. Availability is confirmed by the server.
+                    </p>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            </motion.section>
+
+            <p className="px-3 pt-1 text-center text-[10px] leading-5 text-slate-600">
+              DriveVue AI · Premium mobility, thoughtfully designed.
+            </p>
+          </aside>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 
@@ -477,10 +826,12 @@ export default function CarDetailsPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#090d16] flex items-center justify-center text-slate-400">
-          <div className="animate-pulse flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-blue-500 animate-spin" />
-            <span>Loading Vehicle Specifications...</span>
+        <div className="flex min-h-screen items-center justify-center bg-[#070A12] text-slate-400">
+          <div className="flex items-center gap-3 rounded-2xl border border-white/[0.08] bg-white/[0.03] px-6 py-4">
+            <Sparkles className="h-5 w-5 animate-pulse text-blue-400" />
+            <span className="text-sm">
+              Preparing your premium experience...
+            </span>
           </div>
         </div>
       }

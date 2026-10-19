@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, Suspense } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   Car as CarIcon,
@@ -8,10 +8,11 @@ import {
   SlidersHorizontal,
   RotateCcw,
   ArrowUpDown,
-  X
+  X,
 } from "lucide-react";
+
 import api from "@/lib/api";
-import { Car, CarFilterState } from "@/types/car";
+import type { Car, CarFilterState } from "@/types/car";
 import { MOCK_CARS } from "@/lib/mockCars";
 import CarCard from "@/components/cars/CarCard";
 import CarFilter from "@/components/cars/CarFilter";
@@ -20,7 +21,6 @@ function CarsListingContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Initialize filters once using URL query params as initial values
   const [filters, setFilters] = useState<CarFilterState>(() => ({
     search: searchParams.get("search") || "",
     brand: searchParams.get("brand") || "",
@@ -33,52 +33,56 @@ function CarsListingContent() {
     sortBy: "featured",
   }));
 
-  // Initial state uses MOCK_CARS as resilient default to ensure immediate render
-  const [cars, setCars] = useState<Car[]>(MOCK_CARS);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [cars, setCars] = useState<Car[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
 
-  // Fetch cars asynchronously with resilient fallback
+  // Fetch vehicles from API
   useEffect(() => {
     let active = true;
 
     async function loadCars() {
+      setLoading(true);
+
       try {
-        const params: Record<string, string | boolean> = {};
-        if (filters.search.trim()) params.search = filters.search.trim();
+        const params: Record<string, string | boolean | number> = {};
+
+        if (filters.search.trim()) {
+          params.search = filters.search.trim();
+        }
+
         if (filters.brand) params.brand = filters.brand;
         if (filters.category) params.category = filters.category;
         if (filters.fuelType) params.fuelType = filters.fuelType;
-        if (filters.isAvailableOnly) params.isAvailable = true;
 
-        const res = await api.get("/api/cars", { params });
+        if (filters.isAvailableOnly) {
+          params.isAvailable = true;
+        }
+
+        const response = await api.get("/api/cars", { params });
 
         if (!active) return;
 
-        // Parse response safely across different possible wrapper shapes
-        let loaded: Car[] = [];
-        if (Array.isArray(res.data)) {
-          loaded = res.data;
-        } else if (res.data && Array.isArray(res.data.data)) {
-          loaded = res.data.data;
-        } else if (res.data && Array.isArray(res.data.cars)) {
-          loaded = res.data.cars;
+        const data = response.data;
+
+        let loadedCars: Car[] = [];
+
+        if (Array.isArray(data)) {
+          loadedCars = data;
+        } else if (Array.isArray(data?.data)) {
+          loadedCars = data.data;
+        } else if (Array.isArray(data?.cars)) {
+          loadedCars = data.cars;
         }
 
-        // If backend returned cars, use them; otherwise use MOCK_CARS
-        if (loaded.length > 0) {
-          setCars(loaded);
-        } else {
-          setCars(MOCK_CARS);
-        }
-      } catch (err: unknown) {
+        setCars(loadedCars);
+      } catch (error) {
         if (!active) return;
-        console.warn("[CarsPage] API unavailable, using verified fleet dataset:", err);
+
+        console.error("Failed to load vehicles:", error);
         setCars(MOCK_CARS);
       } finally {
-        if (active) {
-          setLoading(false);
-        }
+        if (active) setLoading(false);
       }
     }
 
@@ -95,11 +99,15 @@ function CarsListingContent() {
     filters.isAvailableOnly,
   ]);
 
-  // Handle user-initiated filter changes
+  // Update filters
   const handleFilterChange = (updated: Partial<CarFilterState>) => {
-    setFilters((prev) => ({ ...prev, ...updated }));
+    setFilters((previous) => ({
+      ...previous,
+      ...updated,
+    }));
   };
 
+  // Reset all filters
   const handleResetFilters = () => {
     setFilters({
       search: "",
@@ -112,58 +120,58 @@ function CarsListingContent() {
       isAvailableOnly: false,
       sortBy: "featured",
     });
+
     router.push("/cars");
+    setIsMobileFilterOpen(false);
   };
 
-  // Extract unique brands dynamically from active fleet
-  const availableBrands = useMemo(() => {
-    return Array.from(new Set(cars.map((c) => c.brand))).filter(Boolean);
-  }, [cars]);
+  // Get available brands
+  const availableBrands = useMemo(
+    () =>
+      Array.from(
+        new Set(cars.map((car) => car.brand).filter(Boolean))
+      ),
+    [cars]
+  );
 
-  // Client-side filtering and sorting for instant responsiveness
+  // Filter and sort vehicles
   const filteredAndSortedCars = useMemo(() => {
     let result = [...cars];
 
-    // Search query matching across name, brand, or model
     if (filters.search.trim()) {
-      const q = filters.search.trim().toLowerCase();
-      result = result.filter(
-        (car) =>
-          car.name?.toLowerCase().includes(q) ||
-          car.brand?.toLowerCase().includes(q) ||
-          car.model?.toLowerCase().includes(q) ||
-          car.category?.toLowerCase().includes(q)
+      const query = filters.search.trim().toLowerCase();
+
+      result = result.filter((car) =>
+        [car.name, car.brand, car.model, car.category].some(
+          (value) => value?.toLowerCase().includes(query)
+        )
       );
     }
 
-    // Category filter
     if (filters.category) {
       result = result.filter(
         (car) =>
-          car.category?.toLowerCase() === filters.category.toLowerCase()
+          car.category?.toLowerCase() ===
+          filters.category.toLowerCase()
       );
     }
 
-    // Brand filter
     if (filters.brand) {
       result = result.filter(
-        (car) => car.brand?.toLowerCase() === filters.brand.toLowerCase()
+        (car) =>
+          car.brand?.toLowerCase() ===
+          filters.brand.toLowerCase()
       );
     }
 
-    // Fuel Type filter
     if (filters.fuelType) {
       result = result.filter(
-        (car) => car.fuelType?.toLowerCase() === filters.fuelType.toLowerCase()
+        (car) =>
+          car.fuelType?.toLowerCase() ===
+          filters.fuelType.toLowerCase()
       );
     }
 
-    // Maximum price per day filter
-    if (filters.maxPrice < 500) {
-      result = result.filter((car) => car.pricePerDay <= filters.maxPrice);
-    }
-
-    // Transmission filter
     if (filters.transmission) {
       result = result.filter(
         (car) =>
@@ -172,104 +180,138 @@ function CarsListingContent() {
       );
     }
 
-    // Availability filter
+    result = result.filter((car) => {
+      const price = Number(car.pricePerDay) || 0;
+
+      return (
+        price >= (filters.minPrice || 0) &&
+        price <= (filters.maxPrice ?? Infinity)
+      );
+    });
+
     if (filters.isAvailableOnly) {
       result = result.filter((car) => car.isAvailable);
     }
 
-    // Sorting
-    if (filters.sortBy === "price-asc") {
-      result.sort((a, b) => a.pricePerDay - b.pricePerDay);
-    } else if (filters.sortBy === "price-desc") {
-      result.sort((a, b) => b.pricePerDay - a.pricePerDay);
-    } else if (filters.sortBy === "year-desc") {
-      result.sort((a, b) => (b.year || 0) - (a.year || 0));
+    switch (filters.sortBy) {
+      case "price-asc":
+        result.sort(
+          (a, b) => a.pricePerDay - b.pricePerDay
+        );
+        break;
+
+      case "price-desc":
+        result.sort(
+          (a, b) => b.pricePerDay - a.pricePerDay
+        );
+        break;
+
+      case "year-desc":
+        result.sort(
+          (a, b) => (b.year || 0) - (a.year || 0)
+        );
+        break;
+
+      default:
+        break;
     }
 
     return result;
   }, [cars, filters]);
 
   return (
-    <div className="relative min-h-screen bg-[#090d16] text-slate-100 pt-28 pb-20">
-      {/* Background ambient lighting */}
-      <div className="absolute top-20 left-1/3 w-[600px] h-[400px] bg-blue-600/10 blur-[150px] pointer-events-none rounded-full" />
-      <div className="absolute top-96 right-10 w-[500px] h-[400px] bg-cyan-500/10 blur-[160px] pointer-events-none rounded-full" />
+    <main className="relative min-h-screen overflow-hidden bg-[#080c15] pb-16 pt-24 text-slate-100 sm:pt-28">
+      {/* Ambient background */}
+      <div className="pointer-events-none absolute left-1/4 top-20 h-80 w-80 rounded-full bg-blue-600/[0.07] blur-[130px]" />
+      <div className="pointer-events-none absolute right-0 top-[500px] h-80 w-80 rounded-full bg-cyan-500/[0.05] blur-[130px]" />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* =========================================================================
-            HEADER & TOOLBAR
-           ========================================================================= */}
-        <div className="mb-10">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-slate-800">
-            <div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs font-semibold text-blue-400 mb-3">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Verified Clean Fleet • 2026 Models Ready</span>
+      <div className="relative mx-auto max-w-[1480px] px-4 sm:px-6 lg:px-8">
+        {/* Page header */}
+        <header className="mb-7 border-b border-slate-800/80 pb-6">
+          <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
+            <div className="min-w-0">
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/[0.08] px-3 py-1.5 text-xs font-semibold text-blue-300">
+                <Sparkles size={14} />
+                <span>Premium Fleet · Find Your Perfect Ride</span>
               </div>
-              <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white">
+
+              <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
                 Explore Our Fleet
               </h1>
-              <p className="text-sm text-slate-400 mt-2 max-w-xl">
-                Browse handpicked luxury cruisers, high-performance EVs, and premium SUVs.
-                All vehicles feature digital smartphone keyless unlock and instant Stripe checkout.
+
+              <p className="mt-2 max-w-xl text-sm leading-6 text-slate-400 sm:text-base">
+                Discover premium SUVs, luxury cars, and electric
+                vehicles. Compare features and find the perfect ride
+                for your next journey.
               </p>
             </div>
 
-            {/* Sort & Mobile Filter Toggle */}
-            <div className="flex items-center gap-3">
-              {/* Mobile Filter Toggle Button */}
+            {/* Toolbar */}
+            <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
-                onClick={() => setIsMobileFilterOpen(!isMobileFilterOpen)}
-                className="md:hidden px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs font-semibold text-white flex items-center gap-2"
+                onClick={() =>
+                  setIsMobileFilterOpen((previous) => !previous)
+                }
+                aria-expanded={isMobileFilterOpen}
+                className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-700/80 bg-slate-900/80 px-3.5 text-sm font-semibold text-white transition hover:border-blue-500/50 lg:hidden"
               >
-                <SlidersHorizontal className="w-4 h-4 text-blue-400" />
-                <span>Filters</span>
-                {filteredAndSortedCars.length > 0 && (
-                  <span className="w-5 h-5 rounded-full bg-blue-600 text-[10px] flex items-center justify-center">
-                    {filteredAndSortedCars.length}
-                  </span>
-                )}
+                <SlidersHorizontal
+                  size={16}
+                  className="text-blue-400"
+                />
+                Filters
+                <span className="rounded-full bg-blue-600 px-2 py-0.5 text-xs">
+                  {filteredAndSortedCars.length}
+                </span>
               </button>
 
-              {/* Sort By Dropdown */}
-              <div className="flex items-center gap-2 bg-slate-900/80 border border-slate-800 rounded-xl px-3.5 py-2">
-                <ArrowUpDown className="w-3.5 h-3.5 text-blue-400" />
-                <span className="text-xs text-slate-400 hidden sm:inline">Sort:</span>
+              <div className="flex min-h-10 items-center gap-2 rounded-xl border border-slate-700/80 bg-slate-900/80 px-3.5">
+                <ArrowUpDown
+                  size={15}
+                  className="shrink-0 text-blue-400"
+                />
+
+                <label
+                  htmlFor="car-sort"
+                  className="hidden text-xs text-slate-400 sm:inline"
+                >
+                  Sort by
+                </label>
+
                 <select
+                  id="car-sort"
                   value={filters.sortBy}
-                  onChange={(e) =>
+                  onChange={(event) =>
                     handleFilterChange({
-                      sortBy: e.target.value as CarFilterState["sortBy"],
+                      sortBy: event.target.value as CarFilterState["sortBy"],
                     })
                   }
-                  className="bg-transparent text-xs text-white focus:outline-none cursor-pointer"
+                  className="max-w-[170px] cursor-pointer bg-transparent text-sm font-medium text-slate-100 outline-none"
                 >
-                  <option value="featured" className="bg-slate-900 text-white">
+                  <option value="featured" className="bg-slate-900">
                     Featured First
                   </option>
-                  <option value="price-asc" className="bg-slate-900 text-white">
+                  <option value="price-asc" className="bg-slate-900">
                     Price: Low to High
                   </option>
-                  <option value="price-desc" className="bg-slate-900 text-white">
+                  <option value="price-desc" className="bg-slate-900">
                     Price: High to Low
                   </option>
-                  <option value="year-desc" className="bg-slate-900 text-white">
+                  <option value="year-desc" className="bg-slate-900">
                     Newest Year
                   </option>
                 </select>
               </div>
             </div>
           </div>
-        </div>
+        </header>
 
-        {/* =========================================================================
-            MAIN CONTENT: SIDEBAR + CAR GRID
-           ========================================================================= */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* Desktop Filter Sidebar (1 col) */}
-          <div className="hidden md:block md:col-span-1">
-            <div className="sticky top-28">
+        {/* Main listing layout */}
+        <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[245px_minmax(0,1fr)] xl:grid-cols-[265px_minmax(0,1fr)] xl:gap-6">
+          {/* Desktop filters */}
+          <aside className="hidden min-w-0 lg:block">
+            <div className="sticky top-24">
               <CarFilter
                 filters={filters}
                 onChange={handleFilterChange}
@@ -278,23 +320,26 @@ function CarsListingContent() {
                 totalResults={filteredAndSortedCars.length}
               />
             </div>
-          </div>
+          </aside>
 
-          {/* Mobile Filter Drawer */}
+          {/* Mobile filter panel */}
           {isMobileFilterOpen && (
-            <div className="md:hidden col-span-1 mb-6 animate-in fade-in slide-in-from-top-4 duration-200">
-              <div className="flex items-center justify-between p-3 bg-slate-900 rounded-t-2xl border-x border-t border-slate-800">
-                <span className="text-xs font-bold uppercase tracking-wider text-white">
-                  Filter Options
-                </span>
+            <section className="min-w-0 lg:hidden">
+              <div className="flex items-center justify-between rounded-t-2xl border border-slate-800 bg-[#0c1423] px-4 py-3">
+                <h2 className="text-sm font-bold text-white">
+                  Filter Vehicles
+                </h2>
+
                 <button
                   type="button"
                   onClick={() => setIsMobileFilterOpen(false)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-white"
+                  aria-label="Close filters"
+                  className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-800 hover:text-white"
                 >
-                  <X className="w-4 h-4" />
+                  <X size={18} />
                 </button>
               </div>
+
               <CarFilter
                 filters={filters}
                 onChange={handleFilterChange}
@@ -302,72 +347,101 @@ function CarsListingContent() {
                 availableBrands={availableBrands}
                 totalResults={filteredAndSortedCars.length}
               />
-            </div>
+            </section>
           )}
 
-          {/* Car Listing Grid (3 cols on desktop) */}
-          <div className="col-span-1 md:col-span-3">
-            {/* Loading State: Shimmer Skeletons (Only while initial loading is active AND no cars) */}
-            {loading && cars.length === 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[1, 2, 3, 4, 5, 6].map((i) => (
+          {/* Vehicle results */}
+          <section className="min-w-0">
+            {/* Results toolbar */}
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-base font-bold text-white sm:text-lg">
+                  Available Vehicles
+                </h2>
+
+                <p className="mt-1 text-xs text-slate-400 sm:text-sm">
+                  {loading
+                    ? "Finding your perfect ride..."
+                    : `${filteredAndSortedCars.length} vehicles found`}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-medium text-slate-400 transition hover:bg-slate-800 hover:text-white"
+              >
+                <RotateCcw size={13} />
+                Reset filters
+              </button>
+            </div>
+
+            {/* Loading skeletons */}
+            {loading ? (
+              <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {Array.from({ length: 6 }).map((_, index) => (
                   <div
-                    key={i}
-                    className="rounded-2xl bg-slate-900/40 border border-slate-800 p-4 space-y-4 animate-pulse"
+                    key={index}
+                    className="animate-pulse overflow-hidden rounded-2xl border border-slate-800/90 bg-[#0c1421]"
                   >
-                    <div className="h-48 w-full bg-slate-800/60 rounded-xl" />
-                    <div className="space-y-2">
-                      <div className="h-4 w-1/3 bg-slate-800/80 rounded" />
-                      <div className="h-5 w-3/4 bg-slate-800 rounded" />
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 py-2">
-                      <div className="h-8 bg-slate-800/50 rounded" />
-                      <div className="h-8 bg-slate-800/50 rounded" />
-                      <div className="h-8 bg-slate-800/50 rounded" />
-                    </div>
-                    <div className="flex items-center justify-between pt-2">
-                      <div className="h-6 w-20 bg-slate-800 rounded" />
-                      <div className="h-9 w-24 bg-slate-800 rounded-xl" />
+                    <div className="aspect-[16/10] bg-slate-800/80" />
+
+                    <div className="space-y-3 p-4">
+                      <div className="h-3 w-1/3 rounded bg-slate-800" />
+                      <div className="h-5 w-4/5 rounded bg-slate-800" />
+
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="h-12 rounded-lg bg-slate-800/80" />
+                        <div className="h-12 rounded-lg bg-slate-800/80" />
+                        <div className="h-12 rounded-lg bg-slate-800/80" />
+                      </div>
+
+                      <div className="h-10 rounded-lg bg-slate-800/80" />
                     </div>
                   </div>
                 ))}
               </div>
             ) : filteredAndSortedCars.length === 0 ? (
-              /* Empty State UI */
-              <div className="rounded-3xl bg-slate-900/40 border border-slate-800 p-12 text-center flex flex-col items-center justify-center space-y-5">
-                <div className="w-16 h-16 rounded-2xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shadow-inner">
-                  <CarIcon className="w-8 h-8 opacity-80" />
+              /* Empty state */
+              <div className="flex min-h-[320px] flex-col items-center justify-center rounded-2xl border border-slate-800 bg-[#0c1421] px-5 py-12 text-center">
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-blue-500/20 bg-blue-500/[0.08] text-blue-400">
+                  <CarIcon size={27} />
                 </div>
-                <div className="max-w-md space-y-1">
-                  <h3 className="text-lg font-bold text-white">
-                    No Vehicles Found
-                  </h3>
-                  <p className="text-xs text-slate-400 leading-relaxed">
-                    We couldn&apos;t find any vehicles matching your current search or filter criteria.
-                    Try broadening your price range or clearing category filters.
-                  </p>
-                </div>
+
+                <h3 className="text-lg font-bold text-white">
+                  No Vehicles Found
+                </h3>
+
+                <p className="mt-2 max-w-sm text-sm leading-6 text-slate-400">
+                  No vehicles match your current filters. Try another
+                  search or reset your filters.
+                </p>
+
                 <button
                   type="button"
                   onClick={handleResetFilters}
-                  className="px-6 py-2.5 rounded-xl font-semibold text-xs text-white bg-[#2563eb] hover:bg-[#1d4ed8] shadow-lg shadow-blue-600/30 transition-all flex items-center gap-1.5"
+                  className="mt-5 inline-flex min-h-10 items-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-500"
                 >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Reset All Filters</span>
+                  <RotateCcw size={15} />
+                  Reset All Filters
                 </button>
               </div>
             ) : (
-              /* Cars Cards Grid */
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              /* Compact, responsive premium grid */
+              <div className="grid grid-cols-1 items-stretch gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {filteredAndSortedCars.map((car, index) => (
-                  <CarCard key={car._id || car.id || index} car={car} index={index} />
+                  <CarCard
+                    key={String(car._id || car.id || index)}
+                    car={car}
+                    index={index}
+                  />
                 ))}
               </div>
             )}
-          </div>
+          </section>
         </div>
       </div>
-    </div>
+    </main>
   );
 }
 
@@ -375,10 +449,15 @@ export default function CarsPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#090d16] flex items-center justify-center text-slate-400">
-          <div className="animate-pulse flex items-center gap-2">
-            <CarIcon className="w-6 h-6 text-blue-500" />
-            <span>Loading DriveVue Fleet...</span>
+        <div className="flex min-h-screen items-center justify-center bg-[#080c15] text-slate-400">
+          <div className="flex items-center gap-3">
+            <CarIcon
+              size={23}
+              className="animate-pulse text-blue-500"
+            />
+            <span className="text-sm">
+              Loading DriveVue Fleet...
+            </span>
           </div>
         </div>
       }

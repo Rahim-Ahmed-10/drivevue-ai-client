@@ -1,276 +1,348 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
-  Car,
+  CarFront,
   Sparkles,
   CalendarDays,
+  Info,
   Menu,
   X,
   LogIn,
   LogOut,
-  User,
-  ChevronRight,
-  Info,
+  UserRound,
+  ChevronDown,
   LayoutDashboard,
   ShieldCheck,
-  ChevronDown,
   UserCircle,
-  AlertTriangle,
-  Loader2
+  ArrowRight,
 } from "lucide-react";
 
+type CurrentUser = {
+  name: string;
+  email: string;
+  role?: string;
+};
+
+const navLinks = [
+  { name: "Home", href: "/", icon: null },
+  { name: "Cars", href: "/cars", icon: CarFront },
+  { name: "AI Assistant", href: "/ai-assistant", icon: Sparkles },
+  { name: "My Bookings", href: "/my-bookings", icon: CalendarDays },
+  { name: "About Us", href: "/about-us", icon: Info },
+];
+
 export default function Navbar() {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isProfilePopupOpen, setIsProfilePopupOpen] = useState(false);
-  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [currentUser, setCurrentUser] = useState<{ name: string; email: string; role?: string } | null>(null);
-
   const pathname = usePathname();
-  const popupRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
-  // 🔴 1. Hide Navbar completely when inside Admin / Dashboard routes
-  const isAdminRoute = pathname?.startsWith("/admin") || pathname === "/dashboard";
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [logoutModalOpen, setLogoutModalOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
 
-  // Scroll detection
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  const isAdminRoute =
+    pathname?.startsWith("/admin") || pathname === "/dashboard";
+
+  const isAdmin = currentUser?.role?.toLowerCase() === "admin";
+
+  // Scroll effect
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 20) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
-      }
+      setIsScrolled(window.scrollY > 12);
     };
-    window.addEventListener("scroll", handleScroll);
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Sync auth state from localStorage
+  // Authentication state
   useEffect(() => {
     const checkAuth = () => {
-      if (typeof window !== "undefined") {
-        const token = localStorage.getItem("token") || localStorage.getItem("auth_token");
-        const userStr = localStorage.getItem("user");
-        if (token && userStr) {
-          try {
-            setCurrentUser(JSON.parse(userStr));
-          } catch {
-            setCurrentUser({ name: "Driver", email: "", role: "USER" });
-          }
-        } else if (token) {
-          setCurrentUser({ name: "Driver", email: "", role: "USER" });
-        } else {
-          setCurrentUser(null);
+      const token =
+        localStorage.getItem("token") || localStorage.getItem("auth_token");
+
+      const userStr = localStorage.getItem("user");
+
+      if (!token) {
+        setCurrentUser(null);
+        return;
+      }
+
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+
+          setCurrentUser({
+            name: user.name || user.fullName || "Driver",
+            email: user.email || "",
+            role: user.role,
+          });
+        } catch {
+          setCurrentUser({
+            name: "Driver",
+            email: "",
+            role: "USER",
+          });
         }
+      } else {
+        setCurrentUser({
+          name: "Driver",
+          email: "",
+          role: "USER",
+        });
       }
     };
 
     checkAuth();
+
     window.addEventListener("auth-changed", checkAuth);
     window.addEventListener("storage", checkAuth);
+
     return () => {
       window.removeEventListener("auth-changed", checkAuth);
       window.removeEventListener("storage", checkAuth);
     };
   }, [pathname]);
 
-  // Close profile dropdown on click outside
+  // Close profile menu when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (popupRef.current && !popupRef.current.contains(event.target as Node)) {
-        setIsProfilePopupOpen(false);
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (
+        profileRef.current &&
+        !profileRef.current.contains(event.target as Node)
+      ) {
+        setProfileOpen(false);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+
+    document.addEventListener("mousedown", handleOutsideClick);
+
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+    };
   }, []);
 
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setMobileOpen(false);
+    setProfileOpen(false);
+  }, [pathname]);
+
+  // Logout modal: close with ESC + lock page scroll while open
+  useEffect(() => {
+    if (!logoutModalOpen) return;
+
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLogoutModalOpen(false);
+    };
+
+    window.addEventListener("keydown", handleKey);
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      window.removeEventListener("keydown", handleKey);
+      document.body.style.overflow = "";
+    };
+  }, [logoutModalOpen]);
+
+  if (isAdminRoute) return null;
+
+  // Opens the confirmation modal
   const openLogoutModal = () => {
-    setIsProfilePopupOpen(false);
-    setIsMobileMenuOpen(false);
-    setIsLogoutModalOpen(true);
+    setProfileOpen(false);
+    setMobileOpen(false);
+    setLogoutModalOpen(true);
   };
 
+  // Actual logout
   const confirmLogout = () => {
-    setIsLoggingOut(true);
-    setTimeout(() => {
-      if (typeof window !== "undefined") {
-        localStorage.removeItem("token");
-        localStorage.removeItem("auth_token");
-        localStorage.removeItem("user");
-        setCurrentUser(null);
-        window.dispatchEvent(new Event("auth-changed"));
-      }
-      setIsLoggingOut(false);
-      setIsLogoutModalOpen(false);
-    }, 1000);
+    localStorage.removeItem("token");
+    localStorage.removeItem("auth_token");
+    localStorage.removeItem("user");
+
+    setCurrentUser(null);
+    setLogoutModalOpen(false);
+
+    window.dispatchEvent(new Event("auth-changed"));
+    router.push("/");
   };
-
-  // 🔴 2. Return null if current route is Admin/Dashboard
-  if (isAdminRoute) {
-    return null;
-  }
-
-  const isAdmin = currentUser?.role?.toLowerCase() === "admin";
-
-  // Clean Navigation Bar Links
-  const navLinks = [
-    { name: "Home", href: "/", icon: null },
-    { name: "Cars", href: "/cars", icon: Car },
-    {
-      name: "AI Assistant",
-      href: "/ai-assistant",
-      icon: Sparkles,
-      highlight: true
-    },
-    { name: "My Bookings", href: "/my-bookings", icon: CalendarDays },
-    { name: "About Us", href: "/about-us", icon: Info },
-  ];
 
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
-          ? "bg-[#060913]/90 backdrop-blur-2xl border-b border-slate-800/80 shadow-2xl shadow-black/70 py-3"
-          : "bg-gradient-to-b from-[#060913]/90 to-transparent py-5"
-          }`}
+        className={[
+          "fixed inset-x-0 top-0 z-50",
+          "transition-all duration-300",
+          isScrolled
+            ? "border-b border-slate-800/80 bg-[#070b14]/95 py-3 shadow-lg shadow-black/20 backdrop-blur-2xl"
+            : "border-b border-white/[0.06] bg-[#070b14]/75 py-4 backdrop-blur-xl",
+        ].join(" ")}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-
-            {/* Text-based Logo */}
+        <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-10">
+          <div className="flex h-12 items-center justify-between gap-4">
+            {/* Logo */}
             <Link
               href="/"
-              className="flex items-center gap-2.5 group transition-transform duration-200 hover:scale-[1.02]"
+              aria-label="DriveVue AI Home"
+              className="group flex shrink-0 items-center gap-2"
             >
-              <div className="flex items-center gap-1.5">
-                <span className="text-2xl font-black tracking-tight text-white font-sans">
-                  Drive<span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Vue</span>
+              <span className="text-[25px] font-black tracking-tight text-white sm:text-[27px]">
+                Drive
+                <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+                  Vue
                 </span>
-                <span className="px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-widest bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 rounded-lg shadow-[0_0_12px_rgba(6,182,212,0.25)]">
-                  AI
-                </span>
-              </div>
+              </span>
+
+              <span className="rounded-md border border-cyan-500/30 bg-cyan-500/10 px-1.5 py-1 text-[10px] font-extrabold text-cyan-300 transition-colors group-hover:bg-cyan-500/20">
+                AI
+              </span>
             </Link>
 
-            {/* Centered Modern Pill Navigation Links */}
-            <nav className="hidden md:flex items-center gap-1.5 bg-[#0d1322]/80 border border-slate-800/90 rounded-full px-4 py-1.5 backdrop-blur-xl shadow-inner shadow-black/50">
+            {/* Desktop navigation */}
+            <nav
+              aria-label="Main navigation"
+              className="hidden items-center gap-1 lg:flex"
+            >
               {navLinks.map((link) => {
-                const isActive = pathname === link.href;
                 const Icon = link.icon;
+                const active = pathname === link.href;
 
                 return (
                   <Link
-                    key={link.name}
+                    key={link.href}
                     href={link.href}
-                    className={`relative flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all duration-200 ${isActive
-                      ? "text-white bg-gradient-to-r from-blue-600 to-blue-500 shadow-md shadow-blue-500/30 border border-blue-400/40"
-                      : link.highlight
-                        ? "text-cyan-300 hover:text-white hover:bg-cyan-500/10"
-                        : "text-slate-300 hover:text-white hover:bg-slate-800/60"
-                      }`}
+                    aria-current={active ? "page" : undefined}
+                    className={[
+                      "relative flex items-center gap-2 rounded-lg px-3 py-2.5",
+                      "text-[13px] font-semibold transition-all duration-200 xl:px-4",
+                      active
+                        ? "bg-blue-600 text-white shadow-md shadow-blue-600/20"
+                        : link.href === "/ai-assistant"
+                          ? "text-cyan-300 hover:bg-cyan-400/[0.08] hover:text-cyan-200"
+                          : "text-slate-300 hover:bg-white/[0.05] hover:text-white",
+                    ].join(" ")}
                   >
                     {Icon && (
                       <Icon
-                        className={`w-3.5 h-3.5 ${link.highlight
-                          ? "text-cyan-400 animate-pulse"
-                          : isActive
+                        size={16}
+                        className={
+                          active
                             ? "text-white"
-                            : "text-slate-400"
-                          }`}
+                            : link.href === "/ai-assistant"
+                              ? "text-cyan-400"
+                              : "text-slate-400"
+                        }
                       />
                     )}
-                    <span>{link.name}</span>
+                    {link.name}
                   </Link>
                 );
               })}
             </nav>
 
-            {/* Desktop Profile / Admin Popup Access */}
-            <div className="hidden md:flex items-center gap-3">
+            {/* Desktop account actions */}
+            <div className="hidden shrink-0 items-center gap-3 lg:flex">
               {currentUser ? (
-                <div className="relative" ref={popupRef}>
+                <div className="relative" ref={profileRef}>
                   <button
                     type="button"
-                    onClick={() => setIsProfilePopupOpen(!isProfilePopupOpen)}
-                    className={`flex items-center gap-2.5 px-3.5 py-1.5 rounded-2xl bg-[#0d1322] hover:bg-[#131b2e] border ${isAdmin ? "border-amber-500/40 shadow-lg shadow-amber-500/10 hover:border-amber-500/70" : "border-slate-800 hover:border-slate-700"
-                      } text-xs text-slate-200 transition-all focus:outline-none`}
+                    onClick={() => setProfileOpen(!profileOpen)}
+                    aria-expanded={profileOpen}
+                    className={[
+                      "flex items-center gap-2.5 rounded-xl border px-3 py-2",
+                      "transition-all duration-200",
+                      profileOpen
+                        ? "border-cyan-500/40 bg-slate-800"
+                        : "border-slate-700/70 bg-slate-900/70 hover:border-slate-600 hover:bg-slate-800/80",
+                    ].join(" ")}
                   >
-                    <div className={`w-7 h-7 rounded-xl ${isAdmin
-                      ? "bg-amber-500/20 border border-amber-500/50 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.2)]"
-                      : "bg-blue-600/25 border border-blue-500/40 text-blue-400"
-                      } flex items-center justify-center font-bold`}>
-                      {isAdmin ? <ShieldCheck className="w-4 h-4" /> : <User className="w-4 h-4" />}
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-slate-100 max-w-[110px] truncate">{currentUser.name}</span>
-                      {isAdmin && (
-                        <span className="px-1.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                          ADMIN
-                        </span>
+                    <span
+                      className={[
+                        "flex h-9 w-9 items-center justify-center rounded-lg border",
+                        isAdmin
+                          ? "border-amber-500/30 bg-amber-500/10 text-amber-300"
+                          : "border-blue-500/30 bg-blue-500/10 text-blue-300",
+                      ].join(" ")}
+                    >
+                      {isAdmin ? (
+                        <ShieldCheck size={19} />
+                      ) : (
+                        <UserRound size={19} />
                       )}
-                    </div>
-                    <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${isProfilePopupOpen ? "rotate-180" : ""}`} />
+                    </span>
+
+                    <span className="max-w-[100px] truncate text-sm font-semibold text-white">
+                      {currentUser.name}
+                    </span>
+
+                    <ChevronDown
+                      size={15}
+                      className={[
+                        "text-slate-400 transition-transform",
+                        profileOpen ? "rotate-180" : "",
+                      ].join(" ")}
+                    />
                   </button>
 
-                  {/* Profile Popup Menu with Dashboard Option */}
-                  {isProfilePopupOpen && (
-                    <div className="absolute right-0 mt-2.5 w-64 rounded-2xl bg-[#090d16]/95 border border-slate-800 backdrop-blur-2xl p-2 shadow-2xl shadow-black z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-
-                      {/* User Info Header */}
-                      <div className="px-3.5 py-3 mb-1.5 rounded-xl bg-[#0f172a]/90 border border-slate-800/80">
-                        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Account</p>
-                        <p className="text-sm font-bold text-white truncate">{currentUser.name}</p>
-                        <p className="text-xs text-slate-400 truncate">{currentUser.email || "admin@drivevue.com"}</p>
+                  {/* Profile dropdown */}
+                  {profileOpen && (
+                    <div className="absolute right-0 top-full mt-3 w-64 overflow-hidden rounded-2xl border border-slate-700/80 bg-[#0b1120] p-2 shadow-2xl shadow-black/50">
+                      <div className="mb-2 rounded-xl border border-slate-800 bg-slate-900/80 p-3">
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                          Signed in as
+                        </p>
+                        <p className="mt-1 truncate text-sm font-bold text-white">
+                          {currentUser.name}
+                        </p>
+                        <p className="mt-1 truncate text-xs text-slate-400">
+                          {currentUser.email}
+                        </p>
                       </div>
 
-                      <div className="space-y-1">
-                        {isAdmin && (
-                          <Link
-                            href="/admin/dashboard"
-                            onClick={() => setIsProfilePopupOpen(false)}
-                            className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-amber-300 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-all shadow-sm"
-                          >
-                            <LayoutDashboard className="w-4 h-4 text-amber-400" />
-                            <span>Admin Dashboard</span>
-                          </Link>
-                        )}
-
+                      {isAdmin && (
                         <Link
-                          href="/profile"
-                          prefetch={false}
-                          onClick={() => setIsProfilePopupOpen(false)}
-                          className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800/70 hover:text-white transition-all"
+                          href="/admin/dashboard"
+                          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-amber-300 hover:bg-amber-500/10"
                         >
-                          <UserCircle className="w-4 h-4 text-blue-400" />
-                          <span>My Profile</span>
+                          <LayoutDashboard size={17} />
+                          Admin Dashboard
                         </Link>
+                      )}
 
-                        <Link
-                          href="/my-bookings"
-                          onClick={() => setIsProfilePopupOpen(false)}
-                          className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium text-slate-300 hover:bg-slate-800/70 hover:text-white transition-all"
-                        >
-                          <CalendarDays className="w-4 h-4 text-cyan-400" />
-                          <span>My Bookings</span>
-                        </Link>
+                      <Link
+                        href="/profile"
+                        className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-300 hover:bg-white/[0.05] hover:text-white"
+                      >
+                        <UserCircle size={17} />
+                        My Profile
+                      </Link>
 
-                        <div className="border-t border-slate-800/80 my-1"></div>
+                      <Link
+                        href="/my-bookings"
+                        className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-slate-300 hover:bg-white/[0.05] hover:text-white"
+                      >
+                        <CalendarDays size={17} />
+                        My Bookings
+                      </Link>
 
-                        <button
-                          type="button"
-                          onClick={openLogoutModal}
-                          className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold text-red-400 hover:bg-red-500/10 transition-all"
-                        >
-                          <LogOut className="w-4 h-4 text-red-400" />
-                          <span>Sign Out</span>
-                        </button>
-                      </div>
+                      <div className="my-2 border-t border-slate-800" />
+
+                      <button
+                        type="button"
+                        onClick={openLogoutModal}
+                        className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-400 hover:bg-red-500/10"
+                      >
+                        <LogOut size={17} />
+                        Sign Out
+                      </button>
                     </div>
                   )}
                 </div>
@@ -278,124 +350,203 @@ export default function Navbar() {
                 <>
                   <Link
                     href="/login"
-                    className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/60 transition-all flex items-center gap-1.5"
+                    className="flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:text-white"
                   >
-                    <LogIn className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Sign In</span>
+                    <LogIn size={16} />
+                    Sign In
                   </Link>
 
                   <Link
                     href="/register"
-                    className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 shadow-lg shadow-blue-500/25 hover:shadow-cyan-400/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5"
+                    className="group flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 px-4 py-2.5 text-sm font-bold text-white shadow-md shadow-blue-600/20 transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-cyan-500/20"
                   >
-                    <span>Sign Up</span>
-                    <ChevronRight className="w-3.5 h-3.5 opacity-90" />
+                    Get Started
+                    <ArrowRight
+                      size={15}
+                      className="transition-transform group-hover:translate-x-0.5"
+                    />
                   </Link>
                 </>
               )}
             </div>
 
-            {/* Mobile Toggle Button */}
-            <div className="flex md:hidden items-center gap-2">
-              <button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-2.5 rounded-xl bg-[#0d1322] border border-slate-800 text-slate-300 hover:text-white focus:outline-none"
-              >
-                {isMobileMenuOpen ? <X className="w-5 h-5 text-red-400" /> : <Menu className="w-5 h-5" />}
-              </button>
-            </div>
+            {/* Mobile menu button */}
+            <button
+              type="button"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              aria-label={mobileOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileOpen}
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-700 bg-slate-900/80 text-slate-200 transition-colors hover:border-cyan-500/40 hover:text-cyan-300 lg:hidden"
+            >
+              {mobileOpen ? <X size={21} /> : <Menu size={21} />}
+            </button>
           </div>
 
-          {/* Mobile Menu Dropdown */}
-          {isMobileMenuOpen && (
-            <div className="md:hidden mt-3 rounded-2xl bg-[#090d16]/95 border border-slate-800/90 backdrop-blur-2xl p-4 shadow-2xl animate-in fade-in slide-in-from-top-4 duration-200">
-              <div className="flex flex-col gap-1.5">
+          {/* Responsive mobile navigation */}
+          {mobileOpen && (
+            <div className="mt-3 rounded-2xl border border-slate-800 bg-[#0a101d]/98 p-3 shadow-2xl shadow-black/30 lg:hidden">
+              <nav
+                aria-label="Mobile navigation"
+                className="flex flex-col gap-1"
+              >
                 {navLinks.map((link) => {
-                  const isActive = pathname === link.href;
                   const Icon = link.icon;
+                  const active = pathname === link.href;
+
                   return (
                     <Link
-                      key={link.name}
+                      key={link.href}
                       href={link.href}
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className={`flex items-center justify-between px-4 py-3 rounded-xl text-xs font-medium transition-colors ${isActive
-                        ? "bg-blue-600/20 text-cyan-300 border border-blue-500/30"
-                        : "text-slate-300 hover:bg-slate-900 hover:text-white"
-                        }`}
+                      aria-current={active ? "page" : undefined}
+                      onClick={() => setMobileOpen(false)}
+                      className={[
+                        "flex items-center justify-between rounded-xl px-3 py-3 text-sm font-medium transition-colors",
+                        active
+                          ? "bg-blue-600/15 text-blue-300"
+                          : "text-slate-300 hover:bg-white/[0.05] hover:text-white",
+                      ].join(" ")}
                     >
-                      <div className="flex items-center gap-3">
-                        {Icon && <Icon className={`w-4 h-4 ${link.highlight ? "text-cyan-400" : "text-slate-400"}`} />}
-                        <span>{link.name}</span>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-slate-500" />
+                      <span className="flex items-center gap-3">
+                        {Icon && (
+                          <Icon
+                            size={18}
+                            className={
+                              link.href === "/ai-assistant"
+                                ? "text-cyan-400"
+                                : active
+                                  ? "text-blue-300"
+                                  : "text-slate-400"
+                            }
+                          />
+                        )}
+                        {link.name}
+                      </span>
+
+                      {active && (
+                        <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
+                      )}
                     </Link>
                   );
                 })}
-              </div>
+              </nav>
 
-              <div className="border-t border-slate-800/80 my-3 pt-3 flex flex-col gap-2">
-                {currentUser ? (
-                  <div className="flex flex-col gap-2 p-3 rounded-xl bg-[#0d1322] border border-slate-800">
-                    <p className="text-xs font-bold text-white">{currentUser.name}</p>
-                    {isAdmin && (
-                      <Link
-                        href="/admin/dashboard"
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className="flex items-center gap-2 py-2 px-3 rounded-lg bg-amber-500/10 text-amber-300 text-xs font-semibold"
-                      >
-                        <LayoutDashboard className="w-4 h-4" />
-                        <span>Admin Dashboard</span>
-                      </Link>
-                    )}
-                    <button
-                      type="button"
-                      onClick={openLogoutModal}
-                      className="flex items-center gap-2 py-2 px-3 rounded-lg bg-red-500/10 text-red-400 text-xs font-semibold"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      <span>Sign Out</span>
-                    </button>
+              <div className="my-3 border-t border-slate-800" />
+
+              {currentUser ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3 rounded-xl bg-slate-900/80 p-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-300">
+                      {isAdmin ? (
+                        <ShieldCheck size={20} />
+                      ) : (
+                        <UserRound size={20} />
+                      )}
+                    </div>
+
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-white">
+                        {currentUser.name}
+                      </p>
+                      <p className="truncate text-xs text-slate-400">
+                        {currentUser.email}
+                      </p>
+                    </div>
                   </div>
-                ) : (
+
+                  {isAdmin && (
+                    <Link
+                      href="/admin/dashboard"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-amber-300 hover:bg-amber-500/10"
+                    >
+                      <LayoutDashboard size={17} />
+                      Admin Dashboard
+                    </Link>
+                  )}
+
+                  <Link
+                    href="/profile"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-300 hover:bg-white/[0.05]"
+                  >
+                    <UserCircle size={17} />
+                    My Profile
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={openLogoutModal}
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-red-400 hover:bg-red-500/10"
+                  >
+                    <LogOut size={17} />
+                    Sign Out
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
                   <Link
                     href="/login"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 shadow-md"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center justify-center gap-2 rounded-xl border border-slate-700 py-3 text-sm font-semibold text-slate-200 hover:bg-white/[0.05]"
                   >
-                    <span>Sign In</span>
+                    <LogIn size={16} />
+                    Sign In
                   </Link>
-                )}
-              </div>
+
+                  <Link
+                    href="/register"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 py-3 text-sm font-bold text-white"
+                  >
+                    Sign Up
+                    <ArrowRight size={15} />
+                  </Link>
+                </div>
+              )}
             </div>
           )}
         </div>
       </header>
 
-      {/* Confirmation Modal */}
-      {isLogoutModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="relative w-full max-w-sm rounded-3xl bg-[#0d1322] border border-slate-800 p-6 shadow-2xl text-center">
-            <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400">
-              <AlertTriangle className="w-7 h-7 animate-bounce" />
+      {/* Logout confirmation modal (outside header to avoid backdrop-filter issues) */}
+      {logoutModalOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm"
+          onClick={() => setLogoutModalOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="logout-title"
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl border border-slate-700/80 bg-[#0b1120] p-6 shadow-2xl shadow-black/50"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl border border-red-500/30 bg-red-500/10 text-red-400">
+              <LogOut size={22} />
             </div>
-            <h3 className="text-lg font-bold text-white mb-1">Confirm Sign Out</h3>
-            <p className="text-xs text-slate-400 mb-6">Are you sure you want to sign out?</p>
-            <div className="flex items-center gap-3">
+
+            <h2 id="logout-title" className="text-lg font-bold text-white">
+              Sign out?
+            </h2>
+            <p className="mt-1.5 text-sm text-slate-400">
+              Are you sure you want to sign out of your account?
+            </p>
+
+            <div className="mt-6 grid grid-cols-2 gap-3">
               <button
                 type="button"
-                disabled={isLoggingOut}
-                onClick={() => setIsLogoutModalOpen(false)}
-                className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700/80 transition-all"
+                onClick={() => setLogoutModalOpen(false)}
+                className="rounded-xl border border-slate-700 py-2.5 text-sm font-semibold text-slate-200 transition-colors hover:bg-white/[0.05]"
               >
                 Cancel
               </button>
+
               <button
                 type="button"
-                disabled={isLoggingOut}
                 onClick={confirmLogout}
-                className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-white bg-red-600 hover:bg-red-500 shadow-lg shadow-red-600/30 transition-all flex items-center justify-center gap-2"
+                className="rounded-xl bg-red-600 py-2.5 text-sm font-bold text-white transition-colors hover:bg-red-500"
               >
-                {isLoggingOut ? <Loader2 className="w-4 h-4 animate-spin" /> : "Sign Out"}
+                Sign Out
               </button>
             </div>
           </div>

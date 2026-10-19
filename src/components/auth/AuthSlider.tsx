@@ -4,16 +4,16 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Mail, 
-  Lock, 
-  User, 
-  Eye, 
-  EyeOff, 
-  Car, 
-  Sparkles, 
-  ArrowRight, 
-  CheckCircle2, 
+import {
+  Mail,
+  Lock,
+  User,
+  Eye,
+  EyeOff,
+  Car,
+  Sparkles,
+  ArrowRight,
+  CheckCircle2,
   AlertCircle,
   Loader2
 } from "lucide-react";
@@ -185,7 +185,7 @@ export default function AuthSlider({ initialMode = "login" }: AuthSliderProps) {
 
       {/* Main Sliding Card Container */}
       <div className="relative w-full max-w-4xl min-h-[640px] bg-slate-900/90 border border-slate-800/90 rounded-3xl shadow-2xl shadow-black/80 backdrop-blur-2xl overflow-hidden z-10 flex flex-col md:flex-row">
-        
+
         {/* =========================================================================
             DESKTOP SLIDING OVERLAY PANEL (Visible on md+)
            ========================================================================= */}
@@ -203,7 +203,7 @@ export default function AuthSlider({ initialMode = "login" }: AuthSliderProps) {
         >
           {/* Gradient background with decorative curved graphics */}
           <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-indigo-600 to-indigo-800" />
-          
+
           {/* Decorative fluid background curves and glowing spheres */}
           <div className="absolute -top-24 -left-24 w-72 h-72 bg-cyan-400/20 rounded-full blur-2xl pointer-events-none" />
           <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-blue-400/20 rounded-full blur-2xl pointer-events-none" />
@@ -296,9 +296,8 @@ export default function AuthSlider({ initialMode = "login" }: AuthSliderProps) {
             LEFT PANEL: SIGN IN FORM
            ========================================================================= */}
         <div
-          className={`w-full md:w-1/2 p-8 sm:p-10 md:p-12 flex flex-col justify-center transition-all duration-300 ${
-            isSignUp ? "hidden md:flex" : "flex"
-          }`}
+          className={`w-full md:w-1/2 p-8 sm:p-10 md:p-12 flex flex-col justify-center transition-all duration-300 ${isSignUp ? "hidden md:flex" : "flex"
+            }`}
         >
           <div className="max-w-sm mx-auto w-full">
             {/* Form Title & Subtitle */}
@@ -483,9 +482,8 @@ export default function AuthSlider({ initialMode = "login" }: AuthSliderProps) {
             RIGHT PANEL: SIGN UP FORM
            ========================================================================= */}
         <div
-          className={`w-full md:w-1/2 p-8 sm:p-10 md:p-12 flex flex-col justify-center transition-all duration-300 ${
-            !isSignUp ? "hidden md:flex" : "flex"
-          }`}
+          className={`w-full md:w-1/2 p-8 sm:p-10 md:p-12 flex flex-col justify-center transition-all duration-300 ${!isSignUp ? "hidden md:flex" : "flex"
+            }`}
         >
           <div className="max-w-sm mx-auto w-full">
             {/* Form Title & Subtitle */}
