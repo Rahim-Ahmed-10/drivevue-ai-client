@@ -55,13 +55,13 @@ export default function AuthSlider({ initialMode = "login" }: AuthSliderProps) {
   const isLoginAdminEmail = loginEmail.trim().toLowerCase().endsWith("@drivevue.com");
   const isRegisterAdminEmail = registerEmail.trim().toLowerCase().endsWith("@drivevue.com");
 
-  // Helper function to fill Demo credentials in Login form only
+  // Helper function to fill Demo credentials in Login form only (সঠিক করা হয়েছে)
   const handleFillDemo = (role: "admin" | "user") => {
     setLoginError("");
     if (role === "admin") {
       setLoginEmail("admin@drivevue.com");
-      setLoginPassword("admin123");
-      setLoginAdminCode("ADMIN_SECRET"); // আপনার ব্যাকএন্ডের ডেমো সিক্রেট কি
+      setLoginPassword("admin123456"); // ব্যাকএন্ডের ডিফল্ট বা সিড করা পাসওয়ার্ড
+      setLoginAdminCode("DriveVueAdmin2026"); // ব্যাকএন্ডের সঠিক ADMIN_SECRET_CODE
     } else {
       setLoginEmail("user@gmail.com");
       setLoginPassword("user123");
@@ -322,7 +322,7 @@ export default function AuthSlider({ initialMode = "login" }: AuthSliderProps) {
           </div>
         </motion.div>
 
-        {/* LEFT PANEL: SIGN IN FORM (DEMO BUTTONS KEPT HERE) */}
+        {/* LEFT PANEL: SIGN IN FORM */}
         <div className={`w-full md:w-1/2 p-8 sm:p-10 md:p-12 flex flex-col justify-center transition-all duration-300 ${isSignUp ? "hidden md:flex" : "flex"}`}>
           <div className="max-w-sm mx-auto w-full">
             <div className="text-center md:text-left mb-5 space-y-1">
@@ -331,7 +331,7 @@ export default function AuthSlider({ initialMode = "login" }: AuthSliderProps) {
               <p className="text-xs text-slate-400">Enter your credentials or use quick demo roles</p>
             </div>
 
-            {/* QUICK DEMO ROLES (LOGIN ONLY) */}
+            {/* QUICK DEMO ROLES */}
             <div className="grid grid-cols-2 gap-2 mb-5">
               <button
                 type="button"
@@ -453,7 +453,7 @@ export default function AuthSlider({ initialMode = "login" }: AuthSliderProps) {
           </div>
         </div>
 
-        {/* RIGHT PANEL: SIGN UP FORM (DEMO BUTTONS REMOVED COMPLETELY) */}
+        {/* RIGHT PANEL: SIGN UP FORM */}
         <div className={`w-full md:w-1/2 p-8 sm:p-10 md:p-12 flex flex-col justify-center transition-all duration-300 ${!isSignUp ? "hidden md:flex" : "flex"}`}>
           <div className="max-w-sm mx-auto w-full">
             <div className="text-center md:text-left mb-6 space-y-1">

@@ -92,7 +92,10 @@ export default function AdminSidebar({
   const sidebarContent = (
     <div className="flex flex-col h-full justify-between">
       <div>
-        <div className="p-4 flex items-center justify-between border-b border-white/10">
+        {/* Header Block - Logo & Toggle Button Fixed Layout */}
+        <div className={`flex items-center border-b border-white/10 transition-all duration-300 ${isCollapsed ? "p-3 flex-col gap-3 justify-center" : "p-4 justify-between"
+          }`}>
+          {/* Logo Icon & Title */}
           <div className="flex items-center gap-3 overflow-hidden">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 via-amber-400 to-yellow-300 p-[1.5px] shadow-lg shadow-amber-500/20 shrink-0">
               <div className="w-full h-full bg-[#050b18] rounded-[10px] flex items-center justify-center text-amber-400">
@@ -113,22 +116,25 @@ export default function AdminSidebar({
             )}
           </div>
 
+          {/* Desktop Toggle Button */}
           <button
             onClick={toggleCollapse}
-            className="hidden md:flex p-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-colors"
+            className="hidden md:flex p-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10 transition-colors shrink-0"
             title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
             {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
           </button>
 
+          {/* Mobile Close Button */}
           <button
             onClick={closeMobile}
-            className="md:hidden p-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-colors"
+            className="md:hidden p-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-400 hover:text-white transition-colors shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
+        {/* Back to Main Site Navigation */}
         <div className="p-3">
           <Link
             href="/"
@@ -142,6 +148,7 @@ export default function AdminSidebar({
           </Link>
         </div>
 
+        {/* Navigation Items */}
         <nav className="p-3 space-y-1.5">
           {navItems.map((item) => {
             const isActive = pathname === item.href || (item.href === "/admin/dashboard" && pathname === "/dashboard");
@@ -186,6 +193,7 @@ export default function AdminSidebar({
         </nav>
       </div>
 
+      {/* Footer Info Widget */}
       <div className="p-3 border-t border-white/10">
         {!isCollapsed ? (
           <div className="p-3 rounded-2xl bg-blue-950/30 border border-blue-500/20">
